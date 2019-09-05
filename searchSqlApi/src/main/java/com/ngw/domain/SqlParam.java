@@ -10,6 +10,8 @@ import java.util.List;
 public class SqlParam {
     @ApiModelProperty("数据表用,分隔")
     private List<String> datas;
+    @ApiModelProperty("高亮")
+    private String highlight;
     @ApiModelProperty("查询语句")
     private String conditions;
     @ApiModelProperty("排序语句")
@@ -24,6 +26,14 @@ public class SqlParam {
     private int pageSize;
     @ApiModelProperty("是否是详细查询")
     private boolean detail;
+
+    public String getHighlight() {
+        return highlight;
+    }
+
+    public void setHighlight(String highlight) {
+        this.highlight = highlight;
+    }
 
     public boolean isDetail() {
         return detail;

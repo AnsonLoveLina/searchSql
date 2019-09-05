@@ -10,6 +10,7 @@ import com.ngw.exception.BaseBizException;
 import com.ngw.service.api.SqlService;
 import com.ngw.util.SqlUtil;
 import com.ngw.domain.ResponseModel;
+import jodd.bean.BeanUtil;
 import jodd.util.StringUtil;
 import org.elasticsearch.action.search.SearchRequest;
 import org.nlpcn.es4sql.Util;
@@ -40,7 +41,7 @@ public class SqlServiceImpl implements SqlService {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private String fieldAggsSql = "select '(' || nvl(f.fieldaggsformula,f.fieldcode) || ')' from t_dsmanager_field f where f.deleteflag='0' and f.fieldisaggs='0' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by f.fieldshowordernum";
+    private String fieldAggsSql = "select '(' || nvl(f.fieldaggsformula,f.fieldcode) || ')' from t_dsmanager_field f where f.deleteflag='0' and f.fieldisaggs='1' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by f.fieldshowordernum";
 
     private String fieldDetailSql = "select fieldcode from t_dsmanager_field f where deleteflag='0' and fielddetailishiden='0' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by fieldshowordernum";
 
@@ -111,16 +112,29 @@ public class SqlServiceImpl implements SqlService {
             defaultFields = jdbcTemplate.queryForList(String.format(fieldSql, "('" + bateDatas + "')"), String.class);
         }
         StringBuilder sql = new StringBuilder();
-        sql.append("select ").append(StringUtil.join(defaultFields, ","))
-                .append(" from ['").append(bateDatas).append("']");
+        sql.append("select ");
+        if (StringUtil.isNotBlank(sqlParam.getHighlight())) {
+            sql.append(sqlParam.getHighlight());
+        }
+        //聚类分页特殊处理
+        if (StringUtil.isNotBlank(defaultAggs)) {
+            sql.append(" /*! DOCS_WITH_AGGREGATION(").append(sqlParam.getPage() * sqlParam.getPageSize()).append(",").append(sqlParam.getPageSize()).append(") */");
+        }
+        sql.append(StringUtil.join(defaultFields, ","))
+                .append(" from ['").append(bateDatas.toLowerCase()).append("']");
         if (StringUtil.isNotBlank(sqlParam.getConditions())) {
             sql.append(" where ").append(sqlParam.getConditions());
         }
-        sql.append(" group by ").append(defaultAggs);
+        if (StringUtil.isNotBlank(defaultAggs)) {
+            sql.append(" group by ").append(defaultAggs);
+        }
         if (StringUtil.isNotBlank(sqlParam.getOrders())) {
             sql.append(" order by ").append(sqlParam.getOrders());
         }
-        sql.append(" limit ").append(sqlParam.getPage() * sqlParam.getPageSize()).append(",").append(sqlParam.getPageSize());
+        //聚类分页特殊处理
+        if (StringUtil.isBlank(defaultAggs)) {
+            sql.append(" limit ").append(sqlParam.getPage() * sqlParam.getPageSize()).append(",").append(sqlParam.getPageSize());
+        }
         return search(new Sql(sql.toString(), sqlParam.getUsername(), sqlParam.getRoleLevel()));
     }
 
