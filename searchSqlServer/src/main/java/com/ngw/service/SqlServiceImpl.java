@@ -41,6 +41,10 @@ public class SqlServiceImpl implements SqlService {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    private int defaultPageSize = 10;
+
+    private String fieldFVHSql = "select '(' || nvl(f.fieldaggsformula,f.fieldcode) || ')' from t_dsmanager_field f where f.deleteflag='0' and f.fieldisfvh='1' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by f.fieldshowordernum";
+
     private String fieldAggsSql = "select '(' || nvl(f.fieldaggsformula,f.fieldcode) || ')' from t_dsmanager_field f where f.deleteflag='0' and f.fieldisaggs='1' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by f.fieldshowordernum";
 
     private String fieldDetailSql = "select fieldcode from t_dsmanager_field f where deleteflag='0' and fielddetailishiden='0' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by fieldshowordernum";
@@ -100,7 +104,13 @@ public class SqlServiceImpl implements SqlService {
 
     @Override
     public ResponseModel defaultSearch(SqlParam sqlParam) {
+        if (sqlParam.getPageSize() == 0) {
+            sqlParam.setPageSize(defaultPageSize);
+        }
         String bateDatas = StringUtil.join(sqlParam.getDatas(), "','");
+        //fvh高亮
+        List<String> defaultFVHList = jdbcTemplate.queryForList(String.format(fieldFVHSql, "('" + bateDatas + "')"), String.class);
+        String defaultFVH = StringUtil.join(defaultFVHList, ",");
         //aggs
         List<String> defaultAggsList = jdbcTemplate.queryForList(String.format(fieldAggsSql, "('" + bateDatas + "')"), String.class);
         String defaultAggs = StringUtil.join(defaultAggsList, ",");
@@ -113,26 +123,28 @@ public class SqlServiceImpl implements SqlService {
         }
         StringBuilder sql = new StringBuilder();
         sql.append("select ");
-        if (StringUtil.isNotBlank(sqlParam.getHighlight())) {
-            sql.append(sqlParam.getHighlight());
-        }
-        //聚类分页特殊处理
-        if (StringUtil.isNotBlank(defaultAggs)) {
-            sql.append(" /*! DOCS_WITH_AGGREGATION(").append(sqlParam.getPage() * sqlParam.getPageSize()).append(",").append(sqlParam.getPageSize()).append(") */");
+        if (sqlParam.getPageSize() != -1) {
+            sql.append("/*! HIGHLIGHT("+defaultFVH+",pre_tags:['<em>'],post_tags:['</em>'])*/");
+            //聚类分页特殊处理
+            if (StringUtil.isNotBlank(defaultAggs)) {
+                sql.append(" /*! DOCS_WITH_AGGREGATION(").append(sqlParam.getPage() * sqlParam.getPageSize()).append(",").append(sqlParam.getPageSize()).append(") */");
+            }
         }
         sql.append(StringUtil.join(defaultFields, ","))
                 .append(" from ['").append(bateDatas.toLowerCase()).append("']");
         if (StringUtil.isNotBlank(sqlParam.getConditions())) {
             sql.append(" where ").append(sqlParam.getConditions());
         }
-        if (StringUtil.isNotBlank(defaultAggs)) {
-            sql.append(" group by ").append(defaultAggs);
-        }
-        if (StringUtil.isNotBlank(sqlParam.getOrders())) {
-            sql.append(" order by ").append(sqlParam.getOrders());
+        if (sqlParam.getPageSize() != -1) {
+            if (StringUtil.isNotBlank(defaultAggs)) {
+                sql.append(" group by ").append(defaultAggs);
+            }
+            if (StringUtil.isNotBlank(sqlParam.getOrders())) {
+                sql.append(" order by ").append(sqlParam.getOrders());
+            }
         }
         //聚类分页特殊处理
-        if (StringUtil.isBlank(defaultAggs)) {
+        if (StringUtil.isBlank(defaultAggs) || sqlParam.getPageSize() == -1) {
             sql.append(" limit ").append(sqlParam.getPage() * sqlParam.getPageSize()).append(",").append(sqlParam.getPageSize());
         }
         return search(new Sql(sql.toString(), sqlParam.getUsername(), sqlParam.getRoleLevel()));
