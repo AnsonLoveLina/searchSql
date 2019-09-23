@@ -11,6 +11,7 @@ import com.ngw.service.api.SqlService;
 import com.ngw.util.SqlUtil;
 import com.ngw.domain.ResponseModel;
 import jodd.bean.BeanUtil;
+import jodd.util.CollectionUtil;
 import jodd.util.StringUtil;
 import org.elasticsearch.action.search.SearchRequest;
 import org.nlpcn.es4sql.Util;
@@ -18,10 +19,17 @@ import org.nlpcn.es4sql.query.SqlElasticRequestBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCallback;
 import org.springframework.stereotype.Service;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -39,17 +47,22 @@ public class SqlServiceImpl implements SqlService {
     private ExecutorService executorService = Executors.newCachedThreadPool();
 
     @Autowired
+    @Qualifier("esJdbcTemplate")
+    private JdbcTemplate esJdbcTemplate;
+
+    @Autowired
+    @Qualifier("oracleJdbcTemplate")
     private JdbcTemplate jdbcTemplate;
 
     private int defaultPageSize = 10;
 
-    private String fieldFVHSql = "select '(' || nvl(f.fieldaggsformula,f.fieldcode) || ')' from t_dsmanager_field f where f.deleteflag='0' and f.fieldisfvh='1' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by f.fieldshowordernum";
+    private String fieldFVHSql = "select f.esfieldcode from v_t_dsmanager_field_es f where f.deleteflag='0' and f.fieldisfvh='1' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by f.fieldshowordernum";
 
-    private String fieldAggsSql = "select '(' || nvl(f.fieldaggsformula,f.fieldcode) || ')' from t_dsmanager_field f where f.deleteflag='0' and f.fieldisaggs='1' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by f.fieldshowordernum";
+    private String fieldAggsSql = "select '(' || nvl(f.fieldaggsformula,f.esfieldcode) || ')' from v_t_dsmanager_field_es f where f.deleteflag='0' and f.fieldisaggs='1' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by f.fieldshowordernum";
 
-    private String fieldDetailSql = "select fieldcode from t_dsmanager_field f where deleteflag='0' and fielddetailishiden='0' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by fieldshowordernum";
+    private String fieldDetailSql = "select esfieldcode from v_t_dsmanager_field_es f where deleteflag='0' and fielddetailishiden='0' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by fieldshowordernum";
 
-    private String fieldSql = "select fieldcode from t_dsmanager_field f where deleteflag='0' and fieldishiden='0' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by fieldshowordernum";
+    private String fieldSql = "select esfieldcode from v_t_dsmanager_field_es f where deleteflag='0' and fieldishiden='0' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by fieldshowordernum";
 
 
     private String logSql = "insert into t_dssearch_searchlog(ID,EXPLAIN,SQL,TOOK,CREATOR,CREATETIME,DELETEFLAG) values (?,?,?,?,?,sysdate,'0')";
@@ -75,31 +88,36 @@ public class SqlServiceImpl implements SqlService {
     public ResponseModel search(Sql sqlParam) {
         String sql = sqlParam.getSql();
         String username = sqlParam.getUsername();
-        int roleLevel = sqlParam.getRoleLevel();
-        Long start = System.currentTimeMillis();
-        SqlElasticRequestBuilder builder = null;
-        try {
-            builder = Util.sqlToEsQuery(sql);
-        } catch (Exception e) {
-            return ResponseModel.getBizError("sql解析失败!\n" + e.getMessage());
-        }
-        String request = builder.explain();
-        if (StringUtil.isNotBlank(request)) {
-            SearchRequest searchRequest = ((SearchRequest) builder.request());
-            String[] indexs = searchRequest.indices();
-            String uri = host + "/" + getIndexsWithRole(roleLevel, indexs) + "/_search?" + searchparam;
-            String response = null;
-            response = SqlUtil.post(uri, Constants.JSON_HEADER, request, Constants.CHARSET_UTF8);
-            if (response == null) {
-                return ResponseModel.getBizError();
-            }
-            logger.debug(request + "\n" + response);
-            Long took = System.currentTimeMillis() - start;
-            log(sql, request, username, took);
-            return ResponseModel.of(JSONObject.parseObject(response));
-        } else {
-            return ResponseModel.getBizError("sql解析失败!\n其他原因！");
-        }
+//        int roleLevel = sqlParam.getRoleLevel();
+        long start = System.currentTimeMillis();
+
+        List<Map<String, Object>> lists = esJdbcTemplate.queryForList(sql, 1);
+        long took = System.currentTimeMillis() - start;
+        log(sql, null, username, took);
+        return ResponseModel.of(lists);
+//        SqlElasticRequestBuilder builder = null;
+//        try {
+//            builder = Util.sqlToEsQuery(sql);
+//        } catch (Exception e) {
+//            return ResponseModel.getBizError("sql解析失败!\n" + e.getMessage());
+//        }
+//        String request = builder.explain();
+//        if (StringUtil.isNotBlank(request)) {
+//            SearchRequest searchRequest = ((SearchRequest) builder.request());
+//            String[] indexs = searchRequest.indices();
+//            String uri = host + "/" + getIndexsWithRole(roleLevel, indexs) + "/_search?" + searchparam;
+//            String response = null;
+//            response = SqlUtil.post(uri, Constants.JSON_HEADER, request, Constants.CHARSET_UTF8);
+//            if (response == null) {
+//                return ResponseModel.getBizError();
+//            }
+//            logger.debug(request + "\n" + response);
+//            long took = System.currentTimeMillis() - start;
+//            log(sql, request, username, took);
+//            return ResponseModel.of(JSONObject.parseObject(response));
+//        } else {
+//            return ResponseModel.getBizError("sql解析失败!\n其他原因！");
+//        }
     }
 
     @Override
@@ -110,7 +128,6 @@ public class SqlServiceImpl implements SqlService {
         String bateDatas = StringUtil.join(sqlParam.getDatas(), "','");
         //fvh高亮
         List<String> defaultFVHList = jdbcTemplate.queryForList(String.format(fieldFVHSql, "('" + bateDatas + "')"), String.class);
-        String defaultFVH = StringUtil.join(defaultFVHList, ",");
         //aggs
         List<String> defaultAggsList = jdbcTemplate.queryForList(String.format(fieldAggsSql, "('" + bateDatas + "')"), String.class);
         String defaultAggs = StringUtil.join(defaultAggsList, ",");
@@ -121,10 +138,17 @@ public class SqlServiceImpl implements SqlService {
         } else {
             defaultFields = jdbcTemplate.queryForList(String.format(fieldSql, "('" + bateDatas + "')"), String.class);
         }
+        if (defaultFields.size() == 0) {
+            return ResponseModel.getBizError("针对表"+bateDatas+"，无字段可查！");
+        }
         StringBuilder sql = new StringBuilder();
         sql.append("select ");
         if (sqlParam.getPageSize() != -1) {
-            sql.append("/*! HIGHLIGHT("+defaultFVH+",pre_tags:['<em>'],post_tags:['</em>'])*/");
+            if (defaultFVHList.size() > 0) {
+                for (String fields : defaultFVHList) {
+                    sql.append("/*! HIGHLIGHT(" + fields + ",pre_tags:['<em>'],post_tags:['</em>'])*/");
+                }
+            }
             //聚类分页特殊处理
             if (StringUtil.isNotBlank(defaultAggs)) {
                 sql.append(" /*! DOCS_WITH_AGGREGATION(").append(sqlParam.getPage() * sqlParam.getPageSize()).append(",").append(sqlParam.getPageSize()).append(") */");
@@ -150,7 +174,7 @@ public class SqlServiceImpl implements SqlService {
         return search(new Sql(sql.toString(), sqlParam.getUsername(), sqlParam.getRoleLevel()));
     }
 
-    private void log(String sql, String explain, String username, Long took) {
+    private void log(String sql, String explain, String username, long took) {
         logger.debug("耗时:" + took);
         executorService.execute(new Runnable() {
             @Override

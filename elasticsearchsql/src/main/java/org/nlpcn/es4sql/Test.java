@@ -1,13 +1,17 @@
 package org.nlpcn.es4sql;
 
+import com.alibaba.druid.pool.DruidDataSource;
+import com.alibaba.druid.pool.ElasticSearchDruidDataSourceFactory;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.*;
 
 /**
  * Created by allwefantasy on 8/18/16.
