@@ -1,6 +1,7 @@
 package org.nlpcn.es4sql.query;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
@@ -74,6 +75,12 @@ public class ESActionFactory {
 				return new DeleteQueryAction(client, delete);
             case "SHOW":
                 return new ShowQueryAction(client,sql);
+            case "INSERT":
+                SQLStatementParser sqlParser = createSqlStatementParser(sql);
+                SQLStatement insertStatement = sqlParser.parseInsert();
+//                Delete delete = new SqlParser().parseDelete(deleteStatement);
+//                return new DeleteQueryAction(client, delete);
+                return null;
 			default:
 				throw new SQLFeatureNotSupportedException(String.format("Unsupported query: %s", sql));
 		}

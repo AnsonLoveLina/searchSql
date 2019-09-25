@@ -31,7 +31,8 @@ public class Util {
     public static final int DRIVER_MINOR_VERSION = 5;
 
     // connection defaults
-    public static final String PREFIX = "jdbc:sql4es:";
+    public static final String PREFIX = "jdbc:elasticsearch:";
+    public static final String URI_PREFIX = "elasticsearch://";
     public static final int PORT = 9300;
 
     // defaults
@@ -44,6 +45,7 @@ public class Util {
     private static final int FRAGMENT_SIZE = 100;
     private static final int FRAGMENT_NUMBER = 1;
     private static final int PRECISION_THRESHOLD = 3000;
+    private static final boolean CLIENT_TRANSPORT_IGNORE = true; // 10K is current max for ES
 
     // property keys
     public static final String PROP_FETCH_SIZE = "fetch.size";
@@ -57,6 +59,7 @@ public class Util {
     public static final String PROP_FRAGMENT_NUMBER = "fragment.number";
     public static final String PROP_RESULTS_SPLIT = "results.split";
     public static final String PROP_PRECISION_THRESHOLD = "precision.threshold";
+    public static final String PROP_CLIENT_TRANSPORT_IGNORE = "client.transport.ignore_cluster_name";
 
 
     public static String getLoggingInfo(){
@@ -72,15 +75,7 @@ public class Util {
 
     public static Properties defaultProps(){
         Properties defaults = new Properties();
-        defaults.put(PROP_FETCH_SIZE, FETCH_SIZE);
-        defaults.put(PROP_SCROLL_TIMEOUT_SEC, SCROLL_TIMEOUT_SEC);
-        defaults.put(PROP_DEFAULT_ROW_LENGTH, DEFAULT_ROW_LENGTH);
-        defaults.put(PROP_QUERY_CACHE_TABLE, QUERY_CACHE);
-        defaults.put(PROP_QUERY_TIMEOUT_MS, QUERY_TIMEOUT_MS);
-        defaults.put(PROP_RESULT_NESTED_LATERAL, RESULT_NESTED_LATERAL);
-        defaults.put(PROP_FRAGMENT_SIZE, FRAGMENT_SIZE);
-        defaults.put(PROP_FRAGMENT_NUMBER, FRAGMENT_NUMBER);
-        defaults.put(PROP_PRECISION_THRESHOLD, PRECISION_THRESHOLD);
+        defaults.put(PROP_CLIENT_TRANSPORT_IGNORE, CLIENT_TRANSPORT_IGNORE);
         return defaults;
     }
 

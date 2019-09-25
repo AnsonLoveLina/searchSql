@@ -31,4 +31,13 @@ public class MyIndexDynamic {
     public void setParent(List parent) {
         this.parent = parent;
     }
+
+    @Override
+    public String toString() {
+        return "MyIndexDynamic{" +
+                "fieldA='" + fieldA + '\'' +
+                ", parent=" + parent +
+                ", _id='" + _id + '\'' +
+                '}';
+    }
 }

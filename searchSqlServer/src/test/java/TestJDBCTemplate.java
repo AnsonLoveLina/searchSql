@@ -28,13 +28,13 @@ public class TestJDBCTemplate {
     @Qualifier("esJdbcTemplate")
     private JdbcTemplate jdbcTemplate;
 
-    private String sql = "select * from my_index_dynamic limit 0,10";
+    private String sql = "select * from my_index_relation limit 0,10";
 
     @Test
     public void test() throws SQLException {
-//        List<MyIndexDynamic> result1 = jdbcTemplate.query(sql, new Object[]{}, new BeanPropertyRowMapper<MyIndexDynamic>(MyIndexDynamic.class));
-//        System.out.println("result1 = " + result1);
-        List<Map<String, Object>> result2 = jdbcTemplate.queryForList(sql, 1);
+        List<MyIndexDynamic> result1 = jdbcTemplate.query(sql, new Object[]{}, new BeanPropertyRowMapper<MyIndexDynamic>(MyIndexDynamic.class));
+        System.out.println("result1 = " + result1);
+        List<Map<String, Object>> result2 = jdbcTemplate.queryForList(sql);
         System.out.println("result = " + result2);
     }
 }

@@ -25,6 +25,10 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCallback;
+import org.springframework.jdbc.core.support.AbstractLobCreatingPreparedStatementCallback;
+import org.springframework.jdbc.support.lob.DefaultLobHandler;
+import org.springframework.jdbc.support.lob.LobCreator;
+import org.springframework.jdbc.support.lob.LobHandler;
 import org.springframework.stereotype.Service;
 
 import java.sql.PreparedStatement;
@@ -53,19 +57,20 @@ public class SqlServiceImpl implements SqlService {
     @Autowired
     @Qualifier("oracleJdbcTemplate")
     private JdbcTemplate jdbcTemplate;
+    LobHandler lobHandler = new DefaultLobHandler();  // reusable object
 
     private int defaultPageSize = 10;
 
-    private String fieldFVHSql = "select f.esfieldcode from v_t_dsmanager_field_es f where f.deleteflag='0' and f.fieldisfvh='1' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by f.fieldshowordernum";
+    private String fieldFVHSql = "select f.esfieldcode from v_t_dsmanager_field_es f where f.deleteflag='0' and f.fieldisfvh='1' and (exists (select 1 from t_dsmanager_data d where d.id = f.dataid and nvl(d.dataisrelation,'0')='0' and d.datacode in %s) or (relationparentfieldid is not null and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s and nvl(d.dataisrelation,'0')='1'))) order by f.fieldshowordernum";
 
-    private String fieldAggsSql = "select '(' || nvl(f.fieldaggsformula,f.esfieldcode) || ')' from v_t_dsmanager_field_es f where f.deleteflag='0' and f.fieldisaggs='1' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by f.fieldshowordernum";
+    private String fieldAggsSql = "select '(' || nvl(f.fieldaggsformula,f.esfieldcode) || ')' from v_t_dsmanager_field_es f where f.deleteflag='0' and f.fieldisaggs='1' and (exists (select 1 from t_dsmanager_data d where d.id = f.dataid and nvl(d.dataisrelation,'0')='0' and d.datacode in %s) or (relationparentfieldid is not null and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s and nvl(d.dataisrelation,'0')='1'))) order by f.fieldshowordernum";
 
-    private String fieldDetailSql = "select esfieldcode from v_t_dsmanager_field_es f where deleteflag='0' and fielddetailishiden='0' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by fieldshowordernum";
+    private String fieldDetailSql = "select esfieldcode from v_t_dsmanager_field_es f where deleteflag='0' and fielddetailishiden='0' and (exists (select 1 from t_dsmanager_data d where d.id = f.dataid and nvl(d.dataisrelation,'0')='0' and d.datacode in %s) or (relationparentfieldid is not null and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s and nvl(d.dataisrelation,'0')='1'))) order by fieldshowordernum";
 
-    private String fieldSql = "select esfieldcode from v_t_dsmanager_field_es f where deleteflag='0' and fieldishiden='0' and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s) order by fieldshowordernum";
+    private String fieldSql = "select esfieldcode from v_t_dsmanager_field_es f where deleteflag='0' and fieldishiden='0' and (exists (select 1 from t_dsmanager_data d where d.id = f.dataid and nvl(d.dataisrelation,'0')='0' and d.datacode in %s) or (relationparentfieldid is not null and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s and nvl(d.dataisrelation,'0')='1'))) order by fieldshowordernum";
 
 
-    private String logSql = "insert into t_dssearch_searchlog(ID,EXPLAIN,SQL,TOOK,CREATOR,CREATETIME,DELETEFLAG) values (?,?,?,?,?,sysdate,'0')";
+    private String logSql = "insert into t_dssearch_searchlog(ID,TOOK,CREATOR,CREATETIME,DELETEFLAG,SQL,EXPLAIN) values (?,?,?,sysdate,'0',?,?)";
 
     @Value("${elasticsearch.host}")
     private String host;
@@ -88,36 +93,37 @@ public class SqlServiceImpl implements SqlService {
     public ResponseModel search(Sql sqlParam) {
         String sql = sqlParam.getSql();
         String username = sqlParam.getUsername();
-//        int roleLevel = sqlParam.getRoleLevel();
+        int roleLevel = sqlParam.getRoleLevel();
         long start = System.currentTimeMillis();
 
-        List<Map<String, Object>> lists = esJdbcTemplate.queryForList(sql, 1);
-        long took = System.currentTimeMillis() - start;
-        log(sql, null, username, took);
-        return ResponseModel.of(lists);
-//        SqlElasticRequestBuilder builder = null;
-//        try {
-//            builder = Util.sqlToEsQuery(sql);
-//        } catch (Exception e) {
-//            return ResponseModel.getBizError("sql解析失败!\n" + e.getMessage());
-//        }
-//        String request = builder.explain();
-//        if (StringUtil.isNotBlank(request)) {
-//            SearchRequest searchRequest = ((SearchRequest) builder.request());
-//            String[] indexs = searchRequest.indices();
-//            String uri = host + "/" + getIndexsWithRole(roleLevel, indexs) + "/_search?" + searchparam;
-//            String response = null;
-//            response = SqlUtil.post(uri, Constants.JSON_HEADER, request, Constants.CHARSET_UTF8);
-//            if (response == null) {
-//                return ResponseModel.getBizError();
-//            }
-//            logger.debug(request + "\n" + response);
-//            long took = System.currentTimeMillis() - start;
-//            log(sql, request, username, took);
-//            return ResponseModel.of(JSONObject.parseObject(response));
-//        } else {
-//            return ResponseModel.getBizError("sql解析失败!\n其他原因！");
-//        }
+//        List<Map<String, Object>> lists = esJdbcTemplate.queryForList(sql, 1);
+//        long took = System.currentTimeMillis() - start;
+//        log(sql, null, username, took);
+//        return ResponseModel.of(lists);
+
+        SqlElasticRequestBuilder builder = null;
+        try {
+            builder = Util.sqlToEsQuery(sql);
+        } catch (Exception e) {
+            return ResponseModel.getBizError("sql解析失败!\n" + e.getMessage());
+        }
+        String request = builder.explain();
+        if (StringUtil.isNotBlank(request)) {
+            SearchRequest searchRequest = ((SearchRequest) builder.request());
+            String[] indexs = searchRequest.indices();
+            String uri = host + "/" + getIndexsWithRole(roleLevel, indexs) + "/_search?" + searchparam;
+            String response = null;
+            response = SqlUtil.post(uri, Constants.JSON_HEADER, request, Constants.CHARSET_UTF8);
+            if (response == null) {
+                return ResponseModel.getBizError();
+            }
+            logger.debug(request + "\n" + response);
+            long took = System.currentTimeMillis() - start;
+            log(sql, request, username, took);
+            return ResponseModel.of(JSONObject.parseObject(response));
+        } else {
+            return ResponseModel.getBizError("sql解析失败!\n其他原因！");
+        }
     }
 
     @Override
@@ -127,19 +133,19 @@ public class SqlServiceImpl implements SqlService {
         }
         String bateDatas = StringUtil.join(sqlParam.getDatas(), "','");
         //fvh高亮
-        List<String> defaultFVHList = jdbcTemplate.queryForList(String.format(fieldFVHSql, "('" + bateDatas + "')"), String.class);
+        List<String> defaultFVHList = jdbcTemplate.queryForList(String.format(fieldFVHSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
         //aggs
-        List<String> defaultAggsList = jdbcTemplate.queryForList(String.format(fieldAggsSql, "('" + bateDatas + "')"), String.class);
+        List<String> defaultAggsList = jdbcTemplate.queryForList(String.format(fieldAggsSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
         String defaultAggs = StringUtil.join(defaultAggsList, ",");
         //fields
         List<String> defaultFields = Lists.newArrayList();
         if (sqlParam.isDetail()) {
-            defaultFields = jdbcTemplate.queryForList(String.format(fieldDetailSql, "('" + bateDatas + "')"), String.class);
+            defaultFields = jdbcTemplate.queryForList(String.format(fieldDetailSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
         } else {
-            defaultFields = jdbcTemplate.queryForList(String.format(fieldSql, "('" + bateDatas + "')"), String.class);
+            defaultFields = jdbcTemplate.queryForList(String.format(fieldSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
         }
         if (defaultFields.size() == 0) {
-            return ResponseModel.getBizError("针对表"+bateDatas+"，无字段可查！");
+            return ResponseModel.getBizError("针对表" + bateDatas + "，无字段可查！");
         }
         StringBuilder sql = new StringBuilder();
         sql.append("select ");
@@ -179,7 +185,15 @@ public class SqlServiceImpl implements SqlService {
         executorService.execute(new Runnable() {
             @Override
             public void run() {
-                jdbcTemplate.update(logSql, "" + UUID.randomUUID().toString().substring(0, 20), explain, sql, took, username);
+                jdbcTemplate.execute(logSql, new AbstractLobCreatingPreparedStatementCallback(lobHandler) {
+                    protected void setValues(PreparedStatement ps, LobCreator lobCreator) throws SQLException {
+                        ps.setString(1, "" + UUID.randomUUID().toString().substring(0, 20));
+                        ps.setString(2, "" + took);
+                        ps.setString(3, username);
+                        lobCreator.setClobAsString(ps, 4, sql);
+                        lobCreator.setClobAsString(ps, 5, explain);
+                    }
+                });
             }
         });
     }
