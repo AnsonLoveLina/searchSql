@@ -4,6 +4,7 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
+import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
@@ -19,6 +20,7 @@ import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.nlpcn.es4sql.domain.Delete;
+import org.nlpcn.es4sql.domain.Insert;
 import org.nlpcn.es4sql.domain.JoinSelect;
 import org.nlpcn.es4sql.domain.Select;
 import org.nlpcn.es4sql.exception.SqlParseException;
@@ -36,84 +38,82 @@ import java.util.List;
 
 public class ESActionFactory {
 
-	/**
-	 * Create the compatible Query object
-	 * based on the SQL query.
-	 * @param sql The SQL query.
-	 * @return Query object.
-	 */
-	public static QueryAction create(Client client, String sql) throws SqlParseException, SQLFeatureNotSupportedException {
-		sql = sql.replaceAll("\n"," ");
+    /**
+     * Create the compatible Query object
+     * based on the SQL query.
+     *
+     * @param sql The SQL query.
+     * @return Query object.
+     */
+    public static Action create(Client client, String sql) throws SqlParseException, SQLFeatureNotSupportedException {
+        sql = sql.replaceAll("\n", " ");
         String firstWord = sql.substring(0, sql.indexOf(' '));
         switch (firstWord.toUpperCase()) {
-			case "SELECT":
-			    //zhongshu-comment 将sql字符串解析成AST，即SQLQueryExpr sqlExpr就是AST了，下面的代码就开始访问AST、从中获取token
-				SQLQueryExpr sqlExpr = (SQLQueryExpr) toSqlExpr(sql);
-                if(isMulti(sqlExpr)){//zhongshu-comment 判断是不是union查询，union查询两个select语句，btw：子查询也有多个select语句，至少2个
+            case "SELECT":
+                //zhongshu-comment 将sql字符串解析成AST，即SQLQueryExpr sqlExpr就是AST了，下面的代码就开始访问AST、从中获取token
+                SQLQueryExpr sqlExpr = (SQLQueryExpr) toSqlExpr(sql);
+                if (isMulti(sqlExpr)) {//zhongshu-comment 判断是不是union查询，union查询两个select语句，btw：子查询也有多个select语句，至少2个
                     MultiQuerySelect multiSelect = new SqlParser().parseMultiSelect((SQLUnionQuery) sqlExpr.getSubQuery().getQuery());
-                    handleSubQueries(client,multiSelect.getFirstSelect());
-                    handleSubQueries(client,multiSelect.getSecondSelect());
+                    handleSubQueries(client, multiSelect.getFirstSelect());
+                    handleSubQueries(client, multiSelect.getSecondSelect());
                     return new MultiQueryAction(client, multiSelect);
-                }
-                else if(isJoin(sqlExpr,sql)){//zhongshu-comment join连接查询
+                } else if (isJoin(sqlExpr, sql)) {//zhongshu-comment join连接查询
                     JoinSelect joinSelect = new SqlParser().parseJoinSelect(sqlExpr);
                     handleSubQueries(client, joinSelect.getFirstTable());
                     handleSubQueries(client, joinSelect.getSecondTable());
                     return ESJoinQueryActionFactory.createJoinAction(client, joinSelect);
-                }
-                else {
+                } else {
                     //zhongshu-comment 大部分查询都是走这个分支，先看懂这个分支
                     Select select = new SqlParser().parseSelect(sqlExpr);
                     //todo 看不懂，测试了好几个常见的sql，都没有进去handleSubQueries该方法，那就先不理了，看别的
                     handleSubQueries(client, select);
                     return handleSelect(client, select);
                 }
-			case "DELETE":
+            case "DELETE":
                 SQLStatementParser parser = createSqlStatementParser(sql);
-				SQLDeleteStatement deleteStatement = parser.parseDeleteStatement();
-				Delete delete = new SqlParser().parseDelete(deleteStatement);
-				return new DeleteQueryAction(client, delete);
+                SQLDeleteStatement deleteStatement = parser.parseDeleteStatement();
+                Delete delete = new SqlParser().parseDelete(deleteStatement);
+                return new DeleteQueryAction(client, delete);
             case "SHOW":
-                return new ShowQueryAction(client,sql);
+                return new ShowQueryAction(client, sql);
             case "INSERT":
                 SQLStatementParser sqlParser = createSqlStatementParser(sql);
                 SQLStatement insertStatement = sqlParser.parseInsert();
-//                Delete delete = new SqlParser().parseDelete(deleteStatement);
-//                return new DeleteQueryAction(client, delete);
-                return null;
-			default:
-				throw new SQLFeatureNotSupportedException(String.format("Unsupported query: %s", sql));
-		}
-	}
+                Insert insert = new SqlParser().parseInsert((SQLInsertStatement) insertStatement);
+                return new InsertAction(client, insert);
+//                return null;
+            default:
+                throw new SQLFeatureNotSupportedException(String.format("Unsupported query: %s", sql));
+        }
+    }
 
     private static boolean isMulti(SQLQueryExpr sqlExpr) {
         return sqlExpr.getSubQuery().getQuery() instanceof SQLUnionQuery;
     }
 
     private static void handleSubQueries(Client client, Select select) throws SqlParseException {
-        if (select.containsSubQueries())
-        {
-            for(SubQueryExpression subQueryExpression : select.getSubQueries()){
+        if (select.containsSubQueries()) {
+            for (SubQueryExpression subQueryExpression : select.getSubQueries()) {
                 QueryAction queryAction = handleSelect(client, subQueryExpression.getSelect());
-                executeAndFillSubQuery(client , subQueryExpression,queryAction);
+                executeAndFillSubQuery(client, subQueryExpression, queryAction);
             }
         }
     }
 
-    private static void executeAndFillSubQuery(Client client , SubQueryExpression subQueryExpression,QueryAction queryAction) throws SqlParseException {
+    private static void executeAndFillSubQuery(Client client, SubQueryExpression subQueryExpression, QueryAction queryAction) throws SqlParseException {
         List<Object> values = new ArrayList<>();
         Object queryResult;
         try {
-            queryResult = QueryActionElasticExecutor.executeAnyAction(client,queryAction);
+            queryResult = QueryActionElasticExecutor.executeAnyAction(client, queryAction);
         } catch (Exception e) {
-            throw new SqlParseException("could not execute SubQuery: " +  e.getMessage());
+            throw new SqlParseException("could not execute SubQuery: " + e.getMessage());
         }
 
         String returnField = subQueryExpression.getReturnField();
-        if(queryResult instanceof SearchHits) {
+        if (queryResult instanceof SearchHits) {
             SearchHits hits = (SearchHits) queryResult;
             for (SearchHit hit : hits) {
-                values.add(ElasticResultHandler.getFieldValue(hit,returnField));
+                values.add(ElasticResultHandler.getFieldValue(hit, returnField));
             }
         } else if (queryResult instanceof SearchResponse) {
             SearchHits hits = ((SearchResponse) queryResult).getHits();
@@ -140,7 +140,7 @@ public class ESActionFactory {
         return new MySqlStatementParser(lexer);
     }
 
-    private static boolean isJoin(SQLQueryExpr sqlExpr,String sql) {
+    private static boolean isJoin(SQLQueryExpr sqlExpr, String sql) {
         MySqlSelectQueryBlock query = (MySqlSelectQueryBlock) sqlExpr.getSubQuery().getQuery();
         return query.getFrom() instanceof SQLJoinTableSource && ((SQLJoinTableSource) query.getFrom()).getJoinType() != SQLJoinTableSource.JoinType.COMMA && sql.toLowerCase().contains("join");
     }
@@ -156,7 +156,6 @@ public class ESActionFactory {
 
         return expr;
     }
-
 
 
 }

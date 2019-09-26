@@ -20,6 +20,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Util {
 
+    public static final String DEFAULTTYPE = "doc";
+
+    public static final String _ID = "_id";
+
+    public static final String DOCSPETYPE = "/";
 
     // statics
     public static final int ES_MAJOR_VERSION = 2;

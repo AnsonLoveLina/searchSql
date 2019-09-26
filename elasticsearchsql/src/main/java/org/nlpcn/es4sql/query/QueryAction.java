@@ -25,7 +25,7 @@ import java.util.Map;
  * Abstract class. used to transform Select object (Represents SQL query) to
  * SearchRequestBuilder (Represents ES query)
  */
-public abstract class QueryAction {
+public abstract class QueryAction implements Action {
 
     protected org.nlpcn.es4sql.domain.Query query;
     protected Client client;

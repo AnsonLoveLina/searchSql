@@ -11,6 +11,7 @@ import org.elasticsearch.plugin.nlpcn.executors.RestExecutor;
 import org.elasticsearch.rest.*;
 import org.nlpcn.es4sql.SearchDao;
 import org.nlpcn.es4sql.exception.SqlParseException;
+import org.nlpcn.es4sql.query.Action;
 import org.nlpcn.es4sql.query.QueryAction;
 
 import java.io.IOException;
@@ -50,7 +51,7 @@ public class RestSqlAction extends BaseRestHandler {
         }
         try {
             SearchDao searchDao = new SearchDao(client);
-            QueryAction queryAction = null;
+            Action queryAction = null;
 
             queryAction = searchDao.explain(sql);//zhongshu-comment 语法解析，将sql字符串解析为一个Java查询对象
 
@@ -63,7 +64,7 @@ public class RestSqlAction extends BaseRestHandler {
 
                 //zhongshu-comment 生成一个负责用rest方式查询es的对象RestExecutor，返回的实现类是：ElasticDefaultRestExecutor
                 RestExecutor restExecutor = ActionRequestRestExecuterFactory.createExecutor(params.get("format"));
-                final QueryAction finalQueryAction = queryAction;
+                final Action finalQueryAction = queryAction;
                 //doing this hack because elasticsearch throws exception for un-consumed props
                 Map<String, String> additionalParams = new HashMap<>();
                 for (String paramName : responseParams()) {

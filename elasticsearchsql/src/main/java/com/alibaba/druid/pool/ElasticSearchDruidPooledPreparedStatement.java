@@ -7,6 +7,7 @@ import org.nlpcn.es4sql.SearchDao;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import org.nlpcn.es4sql.jdbc.ObjectResult;
 import org.nlpcn.es4sql.jdbc.ObjectResultsExtractor;
+import org.nlpcn.es4sql.query.Action;
 import org.nlpcn.es4sql.query.QueryAction;
 
 import java.sql.ResultSet;
@@ -89,7 +90,7 @@ public class ElasticSearchDruidPooledPreparedStatement extends DruidPooledPrepar
 
         //String rewriteSQL = searchDao.explain(getSql()).explain().explain();
 
-        QueryAction queryAction = searchDao.explain(query);
+        Action queryAction = searchDao.explain(query);
         Object execution = QueryActionElasticExecutor.executeAnyAction(searchDao.getClient(), queryAction);
         return new ObjectResultsExtractor(includeScore, includeType, includeId, false, queryAction).extractResults(execution, flat);
     }

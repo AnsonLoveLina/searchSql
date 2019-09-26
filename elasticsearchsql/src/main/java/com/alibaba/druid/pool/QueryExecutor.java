@@ -10,6 +10,7 @@ import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
 import org.elasticsearch.xpack.client.PreBuiltXPackTransportClient;
 import org.nlpcn.es4sql.SearchDao;
 import org.nlpcn.es4sql.exception.SqlParseException;
+import org.nlpcn.es4sql.query.Action;
 import org.nlpcn.es4sql.query.QueryAction;
 
 import java.io.IOException;
@@ -36,7 +37,7 @@ public class QueryExecutor {
     public Object startQuery(String query) throws IOException, SQLFeatureNotSupportedException, SqlParseException {
         SearchDao searchDao = new org.nlpcn.es4sql.SearchDao(client);
 
-        QueryAction queryAction = searchDao.explain(query);
+        Action queryAction = searchDao.explain(query);
         Object execution = QueryActionElasticExecutor.executeAnyAction(searchDao.getClient(), queryAction);
         return execution;
     }

@@ -7,6 +7,7 @@ import org.nlpcn.es4sql.Util;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import org.nlpcn.es4sql.jdbc.ObjectResult;
 import org.nlpcn.es4sql.jdbc.ObjectResultsExtractor;
+import org.nlpcn.es4sql.query.Action;
 import org.nlpcn.es4sql.query.QueryAction;
 
 import java.io.InputStream;
@@ -391,7 +392,7 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
         //String rewriteSQL = searchDao.explain(getSql()).explain().explain();
 
-        QueryAction queryAction = searchDao.explain(query);
+        Action queryAction = searchDao.explain(query);
         Object execution = QueryActionElasticExecutor.executeAnyAction(searchDao.getClient(), queryAction);
         return new ObjectResultsExtractor(includeScore, includeType, includeId, false, queryAction).extractResults(execution, flat);
     }

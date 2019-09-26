@@ -1,5 +1,7 @@
 package org.nlpcn.es4sql.jdbc;
 
+import com.google.common.collect.Maps;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.search.SearchHit;
@@ -15,6 +17,7 @@ import org.elasticsearch.search.aggregations.metrics.stats.Stats;
 import org.elasticsearch.search.aggregations.metrics.stats.extended.ExtendedStats;
 import org.elasticsearch.search.aggregations.metrics.tophits.TopHits;
 import org.nlpcn.es4sql.Util;
+import org.nlpcn.es4sql.query.Action;
 import org.nlpcn.es4sql.query.DefaultQueryAction;
 import org.nlpcn.es4sql.query.QueryAction;
 
@@ -29,9 +32,9 @@ public class ObjectResultsExtractor {
     private final boolean includeId;
     private final boolean includeScrollId;
     private int currentLineIndex;
-    private QueryAction queryAction;
+    private Action queryAction;
 
-    public ObjectResultsExtractor(boolean includeScore, boolean includeType, boolean includeId, boolean includeScrollId, QueryAction queryAction) {
+    public ObjectResultsExtractor(boolean includeScore, boolean includeType, boolean includeId, boolean includeScrollId, Action queryAction) {
         this.includeScore = includeScore;
         this.includeType = includeType;
         this.includeId = includeId;
@@ -53,9 +56,9 @@ public class ObjectResultsExtractor {
             List<List<Object>> lines = new ArrayList<>();
             lines.add(new ArrayList<Object>());
             handleAggregations((Aggregations) queryResult, headers, lines);
-            
+
             // remove empty line。
-            if(lines.get(0).size() == 0) {
+            if (lines.get(0).size() == 0) {
                 lines.remove(0);
             }
             //todo: need to handle more options for aggregations:
@@ -69,6 +72,12 @@ public class ObjectResultsExtractor {
             SearchHit[] hits = ((SearchResponse) queryResult).getHits().getHits();
             List<Map<String, Object>> docsAsMap = new ArrayList<>();
             List<String> headers = createHeadersAndFillDocsMap(flat, hits, ((SearchResponse) queryResult).getScrollId(), docsAsMap);
+            List<List<Object>> lines = createLinesFromDocs(flat, docsAsMap, headers);
+            return new ObjectResult(headers, lines);
+        }
+        if (queryResult instanceof IndexResponse) {
+            List<Map<String, Object>> docsAsMap = new ArrayList<>();
+            List<String> headers = createHeadersAndFillDocsMap((IndexResponse) queryResult, docsAsMap);
             List<List<Object>> lines = createLinesFromDocs(flat, docsAsMap, headers);
             return new ObjectResult(headers, lines);
         }
@@ -255,6 +264,17 @@ public class ObjectResultsExtractor {
             objectLines.add(lines);
         }
         return objectLines;
+    }
+
+    private List<String> createHeadersAndFillDocsMap(IndexResponse indexResponse, List<Map<String, Object>> docsAsMap) {
+        Map<String, Object> doc = Maps.newHashMap();
+        doc.put("_id", indexResponse.getId());
+        doc.put("_index", indexResponse.getIndex());
+        doc.put("_type", indexResponse.getType());
+        doc.put("_version", indexResponse.getVersion());
+        doc.put("_status", indexResponse.status().name());
+        docsAsMap.add(doc);
+        return new ArrayList<>(doc.keySet());
     }
 
     private List<String> createHeadersAndFillDocsMap(boolean flat, SearchHit[] hits, String scrollId, List<Map<String, Object>> docsAsMap) {

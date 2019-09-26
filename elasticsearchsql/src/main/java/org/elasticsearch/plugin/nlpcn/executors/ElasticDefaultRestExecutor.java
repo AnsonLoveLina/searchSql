@@ -16,6 +16,7 @@ import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.rest.action.RestStatusToXContentListener;
 import org.elasticsearch.search.SearchHits;
+import org.nlpcn.es4sql.query.Action;
 import org.nlpcn.es4sql.query.QueryAction;
 import org.nlpcn.es4sql.query.SqlElasticRequestBuilder;
 import org.nlpcn.es4sql.query.join.JoinRequestBuilder;
@@ -36,7 +37,7 @@ public class ElasticDefaultRestExecutor implements RestExecutor {
      * zhongshu-comment 第二个参数Map<String, String> params 并没有被使用
      */
     @Override
-    public void execute(Client client, Map<String, String> params, QueryAction queryAction, RestChannel channel) throws Exception {
+    public void execute(Client client, Map<String, String> params, Action queryAction, RestChannel channel) throws Exception {
         //zhongshu-comment queryAction的使命结束了，交由SqlElasticRequestBuilder接力，SqlElasticRequestBuilder是es-sql自己定义的一个类，不是es原生api
         SqlElasticRequestBuilder requestBuilder = queryAction.explain();
 
@@ -73,7 +74,7 @@ public class ElasticDefaultRestExecutor implements RestExecutor {
     }
 
     @Override
-    public String execute(Client client, Map<String, String> params, QueryAction queryAction) throws Exception {
+    public String execute(Client client, Map<String, String> params, Action queryAction) throws Exception {
 
         SqlElasticRequestBuilder requestBuilder = queryAction.explain();
         ActionRequest request = requestBuilder.request();

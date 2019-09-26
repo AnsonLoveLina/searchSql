@@ -7,12 +7,14 @@ import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import org.elasticsearch.search.sort.ScriptSortBuilder;
+import org.nlpcn.es4sql.Util;
 import org.nlpcn.es4sql.domain.*;
 import org.nlpcn.es4sql.domain.hints.Hint;
 import org.nlpcn.es4sql.domain.hints.HintFactory;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import org.nlpcn.es4sql.query.multi.MultiQuerySelect;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +44,7 @@ public class SqlParser {
 
     /**
      * zhongshu-comment 在访问AST里面的子句、token
+     *
      * @param query
      * @return
      * @throws SqlParseException
@@ -87,6 +90,43 @@ public class SqlParser {
         return select;
     }
 
+    public Insert parseInsert(SQLInsertStatement insertStatement) throws SqlParseException {
+        Insert insert = new Insert();
+        String[] indexAndType = insertStatement.getTableName().getSimpleName().split(Util.DOCSPETYPE);
+        insert.setIndex(indexAndType[0]);
+        if (indexAndType.length > 1) {
+            insert.setType(indexAndType[1]);
+        } else {
+            insert.setType(Util.DEFAULTTYPE);
+        }
+        List<SQLExpr> columns = insertStatement.getColumns();
+        List<SQLExpr> values = insertStatement.getValues().getValues();
+
+        for (int i = 0; i < columns.size(); i++) {
+            SQLExpr columnName = columns.get(i);
+            SQLExpr value = values.get(i);
+            SQLDataType sqlDataType = value.computeDataType();
+            switch (sqlDataType.getName().toUpperCase()) {
+                case SQLDataType.Constants.NUMBER:
+                    insert.addValues(columnName.toString(), ((SQLNumberExpr) value).getValue());
+                    break;
+                case SQLDataType.Constants.BIGINT:
+                    insert.addValues(columnName.toString(), ((SQLIntegerExpr) value).getValue());
+                    break;
+                case SQLDataType.Constants.BOOLEAN:
+                    insert.addValues(columnName.toString(), ((SQLBooleanExpr) value).getValue());
+                    break;
+                case SQLDataType.Constants.VARCHAR:
+                    insert.addValues(columnName.toString(), ((SQLCharExpr) value).getText());
+                    break;
+                default:
+                    insert.addValues(columnName.toString(), value.toString());
+                    break;
+            }
+        }
+        return insert;
+    }
+
     public Delete parseDelete(SQLDeleteStatement deleteStatement) throws SqlParseException {
         Delete delete = new Delete();
         WhereParser whereParser = new WhereParser(this, deleteStatement);
@@ -105,7 +145,7 @@ public class SqlParser {
     public MultiQuerySelect parseMultiSelect(SQLUnionQuery query) throws SqlParseException {
         Select firstTableSelect = this.parseSelect((MySqlSelectQueryBlock) query.getLeft());
         Select secondTableSelect = this.parseSelect((MySqlSelectQueryBlock) query.getRight());
-        return new MultiQuerySelect(query.getOperator(),firstTableSelect,secondTableSelect);
+        return new MultiQuerySelect(query.getOperator(), firstTableSelect, secondTableSelect);
     }
 
     private void findSelect(MySqlSelectQueryBlock query, Select select, String tableAlias) throws SqlParseException {
@@ -252,6 +292,7 @@ public class SqlParser {
     /**
      * Parse the from clause
      * zhongshu-comment 只解析了一般查询和join查询，没有解析子查询
+     *
      * @param from the from clause.
      * @return list of From objects represents all the sources.
      */

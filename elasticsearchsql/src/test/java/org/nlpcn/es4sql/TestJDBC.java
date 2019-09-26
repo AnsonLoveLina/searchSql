@@ -22,11 +22,11 @@ public class TestJDBC {
 
     String insertSql2 = "insert into " + my_index + "(fieldDate,fieldKeyword,fieldText) values('1990-01-01 12:11:11','是的','中华人民共和国')";
 
-    String insertSql3 = "insert into " + my_index + "(fieldDate,fieldText) values('1990-01-01 12:11:11','中华人民共和国')";
+    String insertSql3 = "insert into " + my_index + "(fieldDate,fieldText) values('1990-01-01','中华人民共和国')";
 
     String insertSql4 = "insert into " + my_index + "(fieldDate,fieldText) values('1990-01-01 12','中华人民共和国')";
 
-    String insertSql5 = "insert into " + my_index + "(fieldBoolean,fieldDate,fieldDouble,fieldGeoPoin,fieldInteger,fieldKeyword,fieldLong,fieldText) values(true,'1990-01-01 12:11:11',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
+    String insertSql5 = "insert into " + my_index + "(fieldBoolean,fieldDate,fieldDouble,fieldGeoPoin,fieldInteger,fieldKeyword,fieldLong,fieldText) values(true,'1990-01-01',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
 
     String updateSql1 = "update " + my_index + " set fieldDate='1990-01-01 12',fieldText='中华人民共和国'";
 
@@ -37,11 +37,28 @@ public class TestJDBC {
     String updateSql4 = "update " + my_index + " set fieldBoolean=false,fieldDate='1990-01-01 12',fieldDouble=1.11,fieldGeoPoin='41.12,-71.34',fieldInteger=2,fieldKeyword='是的',fieldLong=2320909,fieldText='中华人民共和国'";
 
     @org.junit.Test
-    public void testInsert() throws Exception {
+    public void test() throws Exception {
+        testStatement();
+        testPrepareStatement();
+    }
+
+    @org.junit.Test
+    public void testInsertPrepareStatement() throws Exception {
+        Class.forName("org.elasticsearch.jdbc.ElasticSearchDriver");
+        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://192.168.0.156:9300/");
+        PreparedStatement ps = connection.prepareStatement(insertSql5);
+        int result = ps.executeUpdate();
+        System.out.println("result = " + result);
+        ps.close();
+        connection.close();
+    }
+
+    @org.junit.Test
+    public void testInsertStatement() throws Exception {
         Class.forName("org.elasticsearch.jdbc.ElasticSearchDriver");
         Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300/");
         Statement statement = connection.createStatement();
-        int result = statement.executeUpdate(insertSql2);
+        int result = statement.executeUpdate(insertSql5);
         System.out.println("result = " + result);
         statement.close();
         connection.close();
