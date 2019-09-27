@@ -29,7 +29,7 @@ public class ElasticSearchDriver implements Driver {
 
     @Override
     public Connection connect(String url, Properties info) throws SQLException {
-        QueryExecutor queryExecutor = QueryExecutor.createQueryExecutor(url,info);
+        QueryExecutor queryExecutor = new QueryExecutor(url,info);
         return new ElasticSearchConnection(queryExecutor);
     }
 

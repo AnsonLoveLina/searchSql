@@ -1,11 +1,10 @@
-package org.nlpcn.es4sql.query;
+package org.nlpcn.es4sql.index;
 
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.nlpcn.es4sql.query.SqlElasticRequestBuilder;
 
 /**
  * Created by zy-xx on 2019/9/26.
@@ -43,5 +42,18 @@ public class SqlElasticInsertRequestBuilder implements SqlElasticRequestBuilder 
     @Override
     public ActionRequestBuilder getBuilder() {
         return indexRequestBuilder;
+    }
+
+    @Override
+    public String toString() {
+        try {
+            if (request() != null) {
+                return indexRequestBuilder.request().source().toString();
+            }
+            return indexRequestBuilder.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

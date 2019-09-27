@@ -1,4 +1,4 @@
-package org.nlpcn.es4sql.query;
+package org.nlpcn.es4sql;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -24,10 +24,12 @@ import org.nlpcn.es4sql.domain.Insert;
 import org.nlpcn.es4sql.domain.JoinSelect;
 import org.nlpcn.es4sql.domain.Select;
 import org.nlpcn.es4sql.exception.SqlParseException;
+import org.nlpcn.es4sql.index.InsertAction;
 import org.nlpcn.es4sql.parse.ElasticLexer;
 import org.nlpcn.es4sql.parse.ElasticSqlExprParser;
 import org.nlpcn.es4sql.parse.SqlParser;
 import org.nlpcn.es4sql.parse.SubQueryExpression;
+import org.nlpcn.es4sql.query.*;
 import org.nlpcn.es4sql.query.join.ESJoinQueryActionFactory;
 import org.nlpcn.es4sql.query.multi.MultiQueryAction;
 import org.nlpcn.es4sql.query.multi.MultiQuerySelect;

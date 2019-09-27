@@ -106,6 +106,9 @@ public class SqlParser {
             SQLExpr columnName = columns.get(i);
             SQLExpr value = values.get(i);
             SQLDataType sqlDataType = value.computeDataType();
+            if (sqlDataType == null) {
+                continue;
+            }
             switch (sqlDataType.getName().toUpperCase()) {
                 case SQLDataType.Constants.NUMBER:
                     insert.addValues(columnName.toString(), ((SQLNumberExpr) value).getValue());

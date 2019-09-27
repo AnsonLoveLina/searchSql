@@ -40,7 +40,7 @@ public class DataSourceConfig {
     @Qualifier("esDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.es")
     public DataSource esDataSource() throws Exception {
-        return ElasticSearchDruidDataSourceBuilder.create().build(new Properties());
+        return new ElasticSearchDruidDataSourceWrapper();
     }
 
     @Bean(name = "oracleJdbcTemplate")

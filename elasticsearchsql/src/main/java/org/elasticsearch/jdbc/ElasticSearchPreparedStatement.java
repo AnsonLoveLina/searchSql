@@ -7,8 +7,7 @@ import org.nlpcn.es4sql.Util;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import org.nlpcn.es4sql.jdbc.ObjectResult;
 import org.nlpcn.es4sql.jdbc.ObjectResultsExtractor;
-import org.nlpcn.es4sql.query.Action;
-import org.nlpcn.es4sql.query.QueryAction;
+import org.nlpcn.es4sql.Action;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -385,15 +384,5 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
     @Override
     public boolean execute(String sql, String[] columnNames) throws SQLException {
         throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
-    }
-
-    private ObjectResult getObjectResult(boolean flat, String query, boolean includeScore, boolean includeType, boolean includeId) throws SqlParseException, SQLFeatureNotSupportedException, Exception, CsvExtractorException {
-        SearchDao searchDao = new SearchDao(connection.getClient());
-
-        //String rewriteSQL = searchDao.explain(getSql()).explain().explain();
-
-        Action queryAction = searchDao.explain(query);
-        Object execution = QueryActionElasticExecutor.executeAnyAction(searchDao.getClient(), queryAction);
-        return new ObjectResultsExtractor(includeScore, includeType, includeId, false, queryAction).extractResults(execution, flat);
     }
 }

@@ -12,9 +12,10 @@ import org.nlpcn.es4sql.domain.Where;
 import org.nlpcn.es4sql.domain.hints.Hint;
 import org.nlpcn.es4sql.domain.hints.HintType;
 import org.nlpcn.es4sql.exception.SqlParseException;
+import org.nlpcn.es4sql.index.IndexAction;
 import org.nlpcn.es4sql.query.maker.QueryMaker;
 
-public class DeleteQueryAction extends QueryAction {
+public class DeleteQueryAction extends QueryAction implements IndexAction {
 
 	private final Delete delete;
 	private DeleteByQueryRequestBuilder request;
@@ -91,4 +92,8 @@ public class DeleteQueryAction extends QueryAction {
 		}
 	}
 
+    @Override
+    public int getCount() {
+        return delete.getRowCount();
+    }
 }

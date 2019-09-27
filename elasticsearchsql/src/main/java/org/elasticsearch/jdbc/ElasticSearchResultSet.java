@@ -7,6 +7,7 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,24 @@ public class ElasticSearchResultSet implements ResultSet {
         this.rows = lines;
         this.headers = headers;
         metaData = new ElasticSearchResultSetMetaDataBase(headers);
+    }
+
+    /**
+     * Creates a new row for this resultset with proper initial capacity (if known) and initialized with NULL's.
+     * The row still needs to be added to the resultset!
+     * @return
+     */
+    public List<Object> getNewRow(){
+        List<Object> row = Arrays.asList();
+        return row;
+    }
+
+    public void add(List<Object> row) {
+        rows.add(row.subList(0, headers.size()));
+    }
+
+    public int getNrRows(){
+        return rows.size();
     }
 
     @Override

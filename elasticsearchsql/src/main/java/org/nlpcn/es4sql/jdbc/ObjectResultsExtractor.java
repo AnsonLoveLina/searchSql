@@ -17,9 +17,8 @@ import org.elasticsearch.search.aggregations.metrics.stats.Stats;
 import org.elasticsearch.search.aggregations.metrics.stats.extended.ExtendedStats;
 import org.elasticsearch.search.aggregations.metrics.tophits.TopHits;
 import org.nlpcn.es4sql.Util;
-import org.nlpcn.es4sql.query.Action;
+import org.nlpcn.es4sql.Action;
 import org.nlpcn.es4sql.query.DefaultQueryAction;
-import org.nlpcn.es4sql.query.QueryAction;
 
 import java.util.*;
 

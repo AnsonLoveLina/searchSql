@@ -51,9 +51,10 @@ public class Insert {
 
     public void addValues(String columnName, Object updateValue) throws SqlParseException {
         if (StringUtil.isNotBlank(columnName) && updateValue != null) {
-            values.put(columnName, updateValue);
             if (Util._ID.equals(columnName)) {
                 setId(updateValue.toString());
+            } else {
+                values.put(columnName, updateValue);
             }
         } else {
             throw new SqlParseException("columnName or value can't be null");

@@ -11,8 +11,7 @@ import org.elasticsearch.plugin.nlpcn.executors.RestExecutor;
 import org.elasticsearch.rest.*;
 import org.nlpcn.es4sql.SearchDao;
 import org.nlpcn.es4sql.exception.SqlParseException;
-import org.nlpcn.es4sql.query.Action;
-import org.nlpcn.es4sql.query.QueryAction;
+import org.nlpcn.es4sql.Action;
 
 import java.io.IOException;
 import java.sql.SQLFeatureNotSupportedException;

@@ -2,9 +2,6 @@ package org.nlpcn.es4sql;
 
 import org.elasticsearch.client.Client;
 import org.nlpcn.es4sql.exception.SqlParseException;
-import org.nlpcn.es4sql.query.Action;
-import org.nlpcn.es4sql.query.ESActionFactory;
-import org.nlpcn.es4sql.query.QueryAction;
 
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.HashSet;

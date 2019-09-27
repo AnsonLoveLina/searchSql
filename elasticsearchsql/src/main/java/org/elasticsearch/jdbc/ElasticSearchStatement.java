@@ -1,18 +1,12 @@
 package org.elasticsearch.jdbc;
 
-import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
-import org.elasticsearch.plugin.nlpcn.executors.CsvExtractorException;
-import org.nlpcn.es4sql.SearchDao;
 import org.nlpcn.es4sql.Util;
-import org.nlpcn.es4sql.exception.SqlParseException;
+import org.nlpcn.es4sql.index.IndexAction;
 import org.nlpcn.es4sql.jdbc.ObjectResult;
-import org.nlpcn.es4sql.jdbc.ObjectResultsExtractor;
-import org.nlpcn.es4sql.query.Action;
-import org.nlpcn.es4sql.query.QueryAction;
+import org.nlpcn.es4sql.Action;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -28,9 +22,14 @@ public class ElasticSearchStatement implements Statement {
     protected boolean poolable = true;
     protected boolean closeOnCompletion = false;
     protected ResultSet result;
+    private List<IndexAction> DMLActions = new ArrayList<>();
 
     public ElasticSearchStatement(ElasticSearchConnection conn) {
         this.connection = conn;
+    }
+
+    public List<IndexAction> getDMLActions() {
+        return DMLActions;
     }
 
     @Override
@@ -38,7 +37,7 @@ public class ElasticSearchStatement implements Statement {
         List<String> headers = new ArrayList<>();
         List<List<Object>> lines = new ArrayList<>();
         try {
-            ObjectResult extractor = getObjectResult(true, sql, false, false, true);
+            ObjectResult extractor = connection.getQueryExecutor().getObjectResult(true, sql, false, false, true);
             headers = extractor.getHeaders();
             lines = extractor.getLines();
         } catch (Exception e) {
@@ -52,24 +51,28 @@ public class ElasticSearchStatement implements Statement {
 
     @Override
     public int executeUpdate(String sql) throws SQLException {
-        List<String> headers = new ArrayList<>();
-        List<List<Object>> lines = new ArrayList<>();
+        if (connection.getAutoCommit()) {
+            return executeQuery(sql).getRow();
+        }
+        Action action = null;
         try {
-            ObjectResult extractor = getObjectResult(true, sql, false, false, true);
-            headers = extractor.getHeaders();
-            lines = extractor.getLines();
+            action = connection.getQueryExecutor().getAction(sql);
         } catch (Exception e) {
             e.printStackTrace();
+            return 0;
         }
-
-        this.result = new ElasticSearchResultSet(this, headers, lines);
-
-        return lines.size();
+        if (!(action instanceof IndexAction)) {
+            this.connection.removeStatements(this);
+            return executeQuery(sql).getRow();
+        }
+        IndexAction indexAction = (IndexAction) action;
+        DMLActions.add(indexAction);
+        return indexAction.getCount();
     }
 
     @Override
     public void close() throws SQLException {
-
+        DMLActions.clear();
     }
 
     @Override
@@ -129,18 +132,20 @@ public class ElasticSearchStatement implements Statement {
 
     @Override
     public boolean execute(String sql) throws SQLException {
-        List<String> headers = new ArrayList<>();
-        List<List<Object>> lines = new ArrayList<>();
+        Action action = null;
         try {
-            ObjectResult extractor = getObjectResult(true, sql, false, false, true);
-            headers = extractor.getHeaders();
-            lines = extractor.getLines();
+            action = connection.getQueryExecutor().getAction(sql);
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
-
-        this.result = new ElasticSearchResultSet(this, headers, lines);
-        return this.result != null;
+        if (!(action instanceof IndexAction)) {
+            this.connection.removeStatements(this);
+            return executeQuery(sql) != null;
+        } else {
+            executeUpdate(sql);
+            return true;
+        }
     }
 
     @Override
@@ -190,16 +195,24 @@ public class ElasticSearchStatement implements Statement {
 
     @Override
     public void addBatch(String sql) throws SQLException {
-
+        try {
+            for (IndexAction dmlAction : DMLActions) {
+                this.connection.add(dmlAction);
+            }
+        } catch (Exception e) {
+            throw new SQLException(e.getCause());
+        }
     }
 
     @Override
     public void clearBatch() throws SQLException {
-
+        this.connection.rollback();
     }
 
     @Override
     public int[] executeBatch() throws SQLException {
+        this.connection.cleartatements();
+        this.connection.commit();
         return new int[0];
     }
 
@@ -287,15 +300,5 @@ public class ElasticSearchStatement implements Statement {
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         throw new SQLFeatureNotSupportedException();
-    }
-
-    private ObjectResult getObjectResult(boolean flat, String query, boolean includeScore, boolean includeType, boolean includeId) throws SqlParseException, SQLFeatureNotSupportedException, Exception, CsvExtractorException {
-        SearchDao searchDao = new SearchDao(connection.getClient());
-
-        //String rewriteSQL = searchDao.explain(getSql()).explain().explain();
-
-        Action queryAction = searchDao.explain(query);
-        Object execution = QueryActionElasticExecutor.executeAnyAction(searchDao.getClient(), queryAction);
-        return new ObjectResultsExtractor(includeScore, includeType, includeId, false, queryAction).extractResults(execution, flat);
     }
 }

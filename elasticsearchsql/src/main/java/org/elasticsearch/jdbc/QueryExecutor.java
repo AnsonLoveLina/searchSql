@@ -1,5 +1,8 @@
 package org.elasticsearch.jdbc;
 
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -7,8 +10,11 @@ import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
 import org.elasticsearch.xpack.client.PreBuiltXPackTransportClient;
 import org.nlpcn.es4sql.SearchDao;
 import org.nlpcn.es4sql.exception.SqlParseException;
-import org.nlpcn.es4sql.query.Action;
-import org.nlpcn.es4sql.query.QueryAction;
+import org.nlpcn.es4sql.Action;
+import org.nlpcn.es4sql.index.IndexAction;
+import org.nlpcn.es4sql.index.InsertAction;
+import org.nlpcn.es4sql.jdbc.ObjectResult;
+import org.nlpcn.es4sql.jdbc.ObjectResultsExtractor;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -24,14 +30,6 @@ public class QueryExecutor {
     private Client client;
     private final List<URI> uriList;
     private final Properties info;
-    private static QueryExecutor queryExecutor;
-
-    public static QueryExecutor createQueryExecutor(String url, Properties info) throws SQLException {
-        if (queryExecutor == null) {
-            queryExecutor = new QueryExecutor(url, info);
-        }
-        return queryExecutor;
-    }
 
     public QueryExecutor(String url, Properties info) throws SQLException {
         Object[] result = ESJDBCUtil.parseURL(url, info);
@@ -40,12 +38,31 @@ public class QueryExecutor {
         buildClient();
     }
 
-    public Object startQuery(String query) throws IOException, SQLFeatureNotSupportedException, SqlParseException {
-        SearchDao searchDao = new SearchDao(client);
+    public ObjectResult getObjectResult(boolean flat, String query, boolean includeScore, boolean includeType, boolean includeId) throws Exception {
+        SearchDao searchDao = new SearchDao(this.client);
+
+        //String rewriteSQL = searchDao.explain(getSql()).explain().explain();
 
         Action queryAction = searchDao.explain(query);
         Object execution = QueryActionElasticExecutor.executeAnyAction(searchDao.getClient(), queryAction);
-        return execution;
+        return new ObjectResultsExtractor(includeScore, includeType, includeId, false, queryAction).extractResults(execution, flat);
+    }
+
+    public Action getAction(String query) throws Exception {
+        SearchDao searchDao = new SearchDao(this.client);
+
+        //String rewriteSQL = searchDao.explain(getSql()).explain().explain();
+
+        Action action = searchDao.explain(query);
+        return action;
+    }
+
+    public void add(IndexAction action, BulkRequestBuilder bulkRequestBuilder) throws Exception {
+        bulkRequestBuilder.add((IndexRequestBuilder) action.explain().getBuilder());
+    }
+
+    public void commit(BulkRequestBuilder bulkRequestBuilder) throws Exception {
+        bulkRequestBuilder.execute().actionGet();
     }
 
     private void buildClient() throws SQLException {

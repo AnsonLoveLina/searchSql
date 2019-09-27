@@ -6,8 +6,7 @@ import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestStatus;
-import org.nlpcn.es4sql.query.Action;
-import org.nlpcn.es4sql.query.QueryAction;
+import org.nlpcn.es4sql.Action;
 
 import java.util.Map;
 

@@ -1,31 +1,43 @@
 package org.elasticsearch.jdbc;
 
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.TransportClient;
 import org.nlpcn.es4sql.Util;
+import org.nlpcn.es4sql.index.IndexAction;
+import org.nlpcn.es4sql.index.InsertAction;
 
 import java.sql.*;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.Executor;
 
 /**
  * Created by allwefantasy on 8/30/16.
+ * 同一个connection必须线程安全
  */
 public class ElasticSearchConnection implements Connection {
+
+    private BulkRequestBuilder bulkRequest;
 
     private final QueryExecutor queryExecutor;
     private boolean autoCommit = false;
     private boolean readOnly = true;
 
     private final Client client;
+    private final Set<ElasticSearchStatement> statements = new HashSet<>();
 
     // 关闭标识
-    private boolean closeStatus = true;
+    private boolean closeStatus = false;
     private int level = ElasticSearchConnection.TRANSACTION_NONE;
 
     public ElasticSearchConnection(QueryExecutor queryExecutor) {
         this.queryExecutor = queryExecutor;
         this.client = queryExecutor.getClient();
+        this.bulkRequest = this.client.prepareBulk();
+    }
+
+    public QueryExecutor getQueryExecutor() {
+        return queryExecutor;
     }
 
     public Client getClient() {
@@ -37,7 +49,9 @@ public class ElasticSearchConnection implements Connection {
         if (this.client == null) {
             throw new SQLException("Unable to connect on specified urls " + queryExecutor.getUriList());
         }
-        return new ElasticSearchStatement(this);
+        ElasticSearchStatement st = new ElasticSearchStatement(this);
+        statements.add(st);
+        return st;
     }
 
     @Override
@@ -45,7 +59,9 @@ public class ElasticSearchConnection implements Connection {
         if (this.client == null) {
             throw new SQLException("Unable to connect on specified urls " + queryExecutor.getUriList());
         }
-        return new ElasticSearchPreparedStatement(this, sql);
+        ElasticSearchPreparedStatement st = new ElasticSearchPreparedStatement(this,sql);
+        statements.add(st);
+        return st;
     }
 
     @Override
@@ -68,19 +84,39 @@ public class ElasticSearchConnection implements Connection {
         return autoCommit;
     }
 
+    protected void add(IndexAction dmlAction) throws Exception {
+        queryExecutor.add(dmlAction, bulkRequest);
+    }
+
     @Override
     public void commit() throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        try {
+            for (ElasticSearchStatement st : this.statements) {
+                for (IndexAction dmlAction : st.getDMLActions()) {
+                    add(dmlAction);
+                }
+                st.getDMLActions().clear();
+            }
+            cleartatements();
+            queryExecutor.commit(bulkRequest);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void rollback() throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        bulkRequest = this.client.prepareBulk();
+        cleartatements();
     }
 
     @Override
     public void close() throws SQLException {
+        if (isClosed()) return;
         closeStatus = true;
+        for (ElasticSearchStatement st : this.statements) st.close();
+        cleartatements();
+        client.close();
     }
 
     @Override
@@ -90,7 +126,9 @@ public class ElasticSearchConnection implements Connection {
 
     @Override
     public DatabaseMetaData getMetaData() throws SQLException {
-        return null;
+        String host = ((TransportClient) client).transportAddresses().get(0).address().getHostName();
+        int port = ((TransportClient) client).transportAddresses().get(0).address().getPort();
+        return new ESDatabaseMetaData(host, port, client, this.getClientInfo(), this);
     }
 
     @Override
@@ -110,7 +148,7 @@ public class ElasticSearchConnection implements Connection {
 
     @Override
     public String getCatalog() throws SQLException {
-        return null;
+        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
     }
 
     @Override
@@ -125,7 +163,7 @@ public class ElasticSearchConnection implements Connection {
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
-        return null;
+        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
     }
 
     @Override
@@ -135,18 +173,20 @@ public class ElasticSearchConnection implements Connection {
 
     @Override
     public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
-        if (this.client == null) {
-            throw new SQLException("Unable to connect on specified urls " + queryExecutor.getUriList());
-        }
-        return new ElasticSearchStatement(this);
+        return createStatement();
+    }
+
+    protected void cleartatements() {
+        statements.clear();
+    }
+
+    protected void removeStatements(ElasticSearchStatement st) {
+        statements.remove(st);
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-        if (this.client == null) {
-            throw new SQLException("Unable to connect on specified urls " + queryExecutor.getUriList());
-        }
-        return new ElasticSearchPreparedStatement(this, sql);
+        return prepareStatement(sql);
     }
 
     @Override
@@ -156,7 +196,7 @@ public class ElasticSearchConnection implements Connection {
 
     @Override
     public Map<String, Class<?>> getTypeMap() throws SQLException {
-        return null;
+        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
     }
 
     @Override
@@ -171,7 +211,8 @@ public class ElasticSearchConnection implements Connection {
 
     @Override
     public int getHoldability() throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        return 6;
+//        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
     }
 
     @Override
@@ -196,17 +237,12 @@ public class ElasticSearchConnection implements Connection {
 
     @Override
     public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        if (this.client == null) {
-            throw new SQLException("Unable to connect on specified urls " + queryExecutor.getUriList());
-        }
-        if (isClosed()) throw new SQLException("Connection closed");
-        ElasticSearchStatement st = new ElasticSearchStatement(this);
-        return st;
+        return createStatement();
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        return null;
+        return this.prepareStatement(sql);
     }
 
     @Override
@@ -216,17 +252,17 @@ public class ElasticSearchConnection implements Connection {
 
     @Override
     public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
-        return null;
+        return this.prepareStatement(sql);
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLException {
-        return null;
+        return this.prepareStatement(sql);
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
-        return null;
+        return this.prepareStatement(sql);
     }
 
     @Override
@@ -291,7 +327,7 @@ public class ElasticSearchConnection implements Connection {
 
     @Override
     public String getSchema() throws SQLException {
-        return null;
+        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
     }
 
     @Override

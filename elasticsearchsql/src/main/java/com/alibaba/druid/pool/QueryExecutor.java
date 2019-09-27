@@ -1,23 +1,18 @@
 package com.alibaba.druid.pool;
 
-import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
 import org.elasticsearch.xpack.client.PreBuiltXPackTransportClient;
 import org.nlpcn.es4sql.SearchDao;
 import org.nlpcn.es4sql.exception.SqlParseException;
-import org.nlpcn.es4sql.query.Action;
-import org.nlpcn.es4sql.query.QueryAction;
+import org.nlpcn.es4sql.Action;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
 

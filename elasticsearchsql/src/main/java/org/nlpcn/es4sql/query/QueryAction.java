@@ -10,6 +10,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.nlpcn.es4sql.Action;
 import org.nlpcn.es4sql.domain.Query;
 import org.nlpcn.es4sql.domain.Select;
 import org.nlpcn.es4sql.domain.hints.Hint;

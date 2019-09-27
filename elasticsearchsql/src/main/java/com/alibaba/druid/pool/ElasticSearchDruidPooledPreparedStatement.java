@@ -7,8 +7,7 @@ import org.nlpcn.es4sql.SearchDao;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import org.nlpcn.es4sql.jdbc.ObjectResult;
 import org.nlpcn.es4sql.jdbc.ObjectResultsExtractor;
-import org.nlpcn.es4sql.query.Action;
-import org.nlpcn.es4sql.query.QueryAction;
+import org.nlpcn.es4sql.Action;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

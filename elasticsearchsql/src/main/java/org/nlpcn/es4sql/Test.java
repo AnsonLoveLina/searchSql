@@ -7,6 +7,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.nlpcn.es4sql.query.SqlElasticRequestBuilder;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,6 +18,34 @@ import java.util.*;
  * Created by allwefantasy on 8/18/16.
  */
 public class Test {
+
+    private static final String my_index_relation = "my_index_relation";
+
+    private static final String my_index = "my_index";
+
+    private static String query1 = "SELECT parent,fieldA from  " + my_index_relation + " limit 0,10";
+
+    private static String insertSql1 = "insert into " + my_index + " values(true,'1990-01-01 12:11:11',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
+
+    private static String insertSql2 = "insert into " + my_index + "(fieldDate,fieldKeyword,fieldText) values('1990-01-01 12:11:11','是的','中华人民共和国')";
+
+    private static String insertSql3 = "insert into " + my_index + "(fieldDate,fieldText) values('1990-01-01','中华人民共和国')";
+
+    private static String insertSql4 = "insert into " + my_index + "(fieldDate,fieldText) values('1990-01-01 12','中华人民共和国')";
+
+    private static String insertSql5 = "insert into " + my_index + "(_id,fieldBoolean,fieldDate,fieldDouble,fieldGeoPoin,fieldInteger,fieldKeyword,fieldLong,fieldText) values('dsfd3334234234',true,'1990-01-01',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
+
+    private static String insertSql6 = "insert into " + my_index + "(fieldBoolean,fieldDate,fieldDouble,fieldGeoPoin,fieldInteger,fieldKeyword,fieldLong,fieldText) values(true,'1990-01-01',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
+
+    private static String updateSql1 = "update " + my_index + " set fieldDate='1990-01-01 12',fieldText='中华人民共和国'";
+
+    private static String updateSql2 = "update " + my_index + " set fieldDate='1990-01-01 12',fieldText='中华人民共和国' where fieldKeyword='是的'";
+
+    private static String updateSql3 = "update " + my_index + " set fieldDate='1990-01-01 12',fieldText='中华人民共和国' where q=query('中华')";
+
+    private static String updateSql4 = "update " + my_index + " set fieldBoolean=false,fieldDate='1990-01-01 12',fieldDouble=1.11,fieldGeoPoin='41.12,-71.34',fieldInteger=2,fieldKeyword='是的',fieldLong=2320909,fieldText='中华人民共和国'";
+
+
     public static String sqlToEsQuery(String sql) throws Exception {
         Map actions = new HashMap();
         Settings settings = Settings.builder().build();
@@ -85,8 +114,14 @@ public class Test {
         String TEST_INDEX = "elasticsearch-sql_test_index";
 
         sql =  "select * from xxx/locs where a = 'b' and a > 1";
+        SqlElasticRequestBuilder insert = Util.sqlToEsQuery(insertSql5);
+        SqlElasticRequestBuilder query = Util.sqlToEsQuery(sql);
 
-        System.out.println("sql" + sql + ":\n----------\n" + Util.sqlToEsQuery(sql));
+        System.out.println("sql" + insertSql5 + ":\n----------\n" + insert);
+
+        System.out.println("sql" + sql + ":\n----------\n" + query);
+
+        System.out.println("sss");
 
 
     }
