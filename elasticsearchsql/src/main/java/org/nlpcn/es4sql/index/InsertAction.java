@@ -1,6 +1,5 @@
 package org.nlpcn.es4sql.index;
 
-import com.sun.tools.javac.util.Assert;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.client.Client;
 import org.nlpcn.es4sql.domain.Insert;
@@ -18,8 +17,6 @@ public class InsertAction implements IndexAction, Action {
     private IndexRequestBuilder request;
 
     public InsertAction(Client client, Insert insert) {
-        Assert.checkNonNull(client);
-        Assert.checkNonNull(insert);
         this.client = client;
         this.insert = insert;
     }

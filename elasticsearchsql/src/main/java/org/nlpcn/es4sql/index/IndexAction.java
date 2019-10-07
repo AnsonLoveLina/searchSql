@@ -1,6 +1,5 @@
 package org.nlpcn.es4sql.index;
 
-import com.sun.tools.javac.util.Assert;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.client.Client;
 import org.nlpcn.es4sql.Action;
