@@ -3,13 +3,10 @@ package com.ngw.service;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.ngw.common.Constants;
-import com.ngw.domain.ResponseCode;
-import com.ngw.domain.Sql;
-import com.ngw.domain.SqlParam;
+import com.ngw.domain.*;
 import com.ngw.exception.BaseBizException;
 import com.ngw.service.api.SqlService;
 import com.ngw.util.SqlUtil;
-import com.ngw.domain.ResponseModel;
 import jodd.bean.BeanUtil;
 import jodd.util.CollectionUtil;
 import jodd.util.StringUtil;
@@ -134,9 +131,12 @@ public class SqlServiceImpl implements SqlService {
         String bateDatas = StringUtil.join(sqlParam.getDatas(), "','");
         //fvh高亮
         List<String> defaultFVHList = jdbcTemplate.queryForList(String.format(fieldFVHSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
-        //aggs
-        List<String> defaultAggsList = jdbcTemplate.queryForList(String.format(fieldAggsSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
-        String defaultAggs = StringUtil.join(defaultAggsList, ",");
+        String defaultAggs = null;
+        if (sqlParam.isAggs()) {
+            //aggs
+            List<String> defaultAggsList = jdbcTemplate.queryForList(String.format(fieldAggsSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
+            defaultAggs = StringUtil.join(defaultAggsList, ",");
+        }
         //fields
         List<String> defaultFields = Lists.newArrayList();
         if (sqlParam.isDetail()) {
@@ -178,6 +178,28 @@ public class SqlServiceImpl implements SqlService {
             sql.append(" limit ").append(sqlParam.getPage() * sqlParam.getPageSize()).append(",").append(sqlParam.getPageSize());
         }
         return search(new Sql(sql.toString(), sqlParam.getUsername(), sqlParam.getRoleLevel()));
+    }
+
+    @Override
+    public ResponseModel aggsSearch(SqlSearchParam sqlSearchParam) {
+        String bateDatas = StringUtil.join(sqlSearchParam.getDatas(), "','");
+        String defaultAggs = null;
+        //aggs
+        List<String> defaultAggsList = jdbcTemplate.queryForList(String.format(fieldAggsSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
+        defaultAggs = StringUtil.join(defaultAggsList, ",");
+        StringBuilder sql = new StringBuilder();
+        sql.append("select ");
+        sql.append(" * ")
+                .append(" from ['").append(bateDatas.toLowerCase()).append("']");
+        if (StringUtil.isNotBlank(sqlSearchParam.getConditions())) {
+            sql.append(" where ").append(sqlSearchParam.getConditions());
+        }
+        if (StringUtil.isNotBlank(defaultAggs)) {
+            sql.append(" group by ").append(defaultAggs);
+        } else {
+            return ResponseModel.getBizError("针对表" + bateDatas + "，无字段可聚类！");
+        }
+        return search(new Sql(sql.toString(), sqlSearchParam.getUsername(), sqlSearchParam.getRoleLevel()));
     }
 
     private void log(String sql, String explain, String username, long took) {
