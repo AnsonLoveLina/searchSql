@@ -13,7 +13,9 @@ public class TestJDBC {
 
     private static final String my_index = "my_index";
 
-    private static String query1 = "SELECT parent,fieldA from  " + my_index_relation + " limit 0,10";
+    private static String query1 = "SELECT * from  " + my_index + " limit 0,10";
+
+    private static String query2 = "SELECT parent,fieldA from  " + my_index_relation + " limit 0,10";
 
     private static String insertSql1 = "insert into " + my_index + " values(true,'1990-01-01 12:11:11',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
 
@@ -34,6 +36,20 @@ public class TestJDBC {
     private static String updateSql3 = "update " + my_index + " set fieldDate='1990-01-01 12',fieldText='中华人民共和国' where q=query('中华')";
 
     private static String updateSql4 = "update " + my_index + " set fieldBoolean=false,fieldDate='1990-01-01 12',fieldDouble=1.11,fieldGeoPoin='41.12,-71.34',fieldInteger=2,fieldKeyword='是的',fieldLong=2320909,fieldText='中华人民共和国'";
+
+    private static String user = "elastic";
+    private static String password = "xx198742";
+    private static String param = "";
+    private static java.util.Properties info = new java.util.Properties();
+
+    static{
+        param = "xpack.security.user="+user + ":" + password+"&xpack.security.transport.ssl.enabled=true&xpack.security.transport.ssl.verification_mode=certificate&xpack.security.transport.ssl.keystore.path=/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12&xpack.security.transport.ssl.truststore.path=/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12";
+        info.put("xpack.security.user", user + ":" + password);
+        info.put("xpack.security.transport.ssl.enabled", "true");
+        info.put("xpack.security.transport.ssl.verification_mode", "certificate");
+        info.put("xpack.security.transport.ssl.keystore.path", "/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12");
+        info.put("xpack.security.transport.ssl.truststore.path", "/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12");
+    }
 
     @org.junit.Test
     public void test() throws Exception {
@@ -64,7 +80,7 @@ public class TestJDBC {
     @org.junit.Test
     public void testInsertStatement() throws Exception {
         Class.forName("org.elasticsearch.jdbc.ElasticSearchDriver");
-        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300/");
+        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300");
         connection.setAutoCommit(false);
         Statement statement = connection.createStatement();
         int result = statement.executeUpdate(insertSql6);
@@ -77,12 +93,11 @@ public class TestJDBC {
     @org.junit.Test
     public void testQueryStatement() throws Exception {
         Class.forName("org.elasticsearch.jdbc.ElasticSearchDriver");
-        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300/");
+        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300?"+param);
         Statement statement = connection.createStatement();
         ResultSet resultSet = statement.executeQuery(query1);
         while (resultSet.next()) {
-            System.out.println(resultSet.getObject("parent"));
-            System.out.println(resultSet.getString("fieldA"));
+            System.out.println(resultSet.getString("key"));
         }
         statement.close();
         connection.close();
@@ -92,7 +107,7 @@ public class TestJDBC {
     public void testQueryPrepareStatement() throws Exception {
         Class.forName("org.elasticsearch.jdbc.ElasticSearchDriver");
         Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300/");
-        PreparedStatement ps = connection.prepareStatement(query1);
+        PreparedStatement ps = connection.prepareStatement(query2);
         ResultSet resultSet = ps.executeQuery();
         List<String> result = new ArrayList<String>();
         while (resultSet.next()) {

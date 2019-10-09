@@ -1,9 +1,11 @@
 package org.elasticsearch.jdbc;
 
+import jodd.util.StringUtil;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
@@ -22,8 +24,11 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+
+import static org.elasticsearch.xpack.core.security.authc.support.UsernamePasswordToken.basicAuthHeaderValue;
 
 public class QueryExecutor {
 
@@ -70,6 +75,13 @@ public class QueryExecutor {
             synchronized (this) {
                 if (client == null) {
                     Settings.Builder builder = Settings.builder();
+                    String user = info.getProperty("user");
+                    String password = info.getProperty("password");
+                    if (StringUtil.isNotBlank(user) && StringUtil.isNotBlank(password)) {
+                        builder.put("xpack.security.user", user + ":" + password);
+                        info.remove("user");
+                        info.remove("password");
+                    }
                     info.forEach((k, v) -> builder.put(k.toString(), v.toString()));
 
                     TransportAddress[] addresses = new TransportAddress[uriList.size()];
@@ -82,6 +94,10 @@ public class QueryExecutor {
                     }
 
                     client = new PreBuiltXPackTransportClient(builder.build()).addTransportAddresses(addresses);
+//                    String token = basicAuthHeaderValue(user, new SecureString(password.toCharArray()));
+//
+//                    client.filterWithHeader(Collections.singletonMap("Authorization", token))
+//                            .prepareSearch().get();
                 }
             }
         }
