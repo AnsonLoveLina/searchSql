@@ -141,7 +141,8 @@ public class DefaultQueryAction extends QueryAction {
                             f = kvValue.value.toString();
                             fieldNames.add(f);
                             includeFields.add(f);
-                            request.addStoredField(f);
+                            //暂时先去掉storedField
+//                            request.addStoredField(f);
                         }
                     } else if (method.getName().equalsIgnoreCase("exclude")) {
                         for (KVValue kvValue : method.getParams()) {
@@ -151,7 +152,8 @@ public class DefaultQueryAction extends QueryAction {
                 } else if (field != null) {
                     fieldNames.add(field.getName());
                     includeFields.add(field.getName());
-                    request.addStoredField(field.getName());
+                    //暂时先去掉storedField
+//                    request.addStoredField(field.getName());
                 }
             }
 

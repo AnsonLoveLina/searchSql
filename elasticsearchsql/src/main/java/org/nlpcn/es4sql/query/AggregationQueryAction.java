@@ -379,7 +379,8 @@ public class AggregationQueryAction extends QueryAction {
             for (Field field : fields) {
                 if (field != null) {
                     includeFields.add(field.getName());
-                    request.addStoredField(field.getName());
+                    //暂时先去掉storedField
+//                    request.addStoredField(field.getName());
                 }
             }
 
