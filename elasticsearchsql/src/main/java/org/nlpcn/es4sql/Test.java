@@ -23,6 +23,8 @@ public class Test {
 
     private static final String my_index = "my_index";
 
+    private static String query2 = "SELECT ZJHM,SSS from  " + my_index;
+
     private static String query1 = "SELECT parent,fieldA from  " + my_index_relation + " limit 0,10";
 
     private static String insertSql1 = "insert into " + my_index + " values(true,'1990-01-01 12:11:11',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
@@ -111,18 +113,8 @@ public class Test {
 //                "floor(substring(newtype,0,14)/100)/5)*5 as key," +
 //                "count(distinct(num)) cvalue FROM twitter2 " +
 //                "group by key ";
-        String TEST_INDEX = "elasticsearch-sql_test_index";
-
-        sql =  "select * from xxx/locs where a = 'b' and a > 1";
-        SqlElasticRequestBuilder insert = Util.sqlToEsQuery(insertSql5);
-        SqlElasticRequestBuilder query = Util.sqlToEsQuery(sql);
-
-        System.out.println("sql" + insertSql5 + ":\n----------\n" + insert);
-
-        System.out.println("sql" + sql + ":\n----------\n" + query);
-
-        System.out.println("sss");
-
+        SqlElasticRequestBuilder query = Util.sqlToEsQuery(query2);
+        System.out.println("query = " + query.explain());
 
     }
 }

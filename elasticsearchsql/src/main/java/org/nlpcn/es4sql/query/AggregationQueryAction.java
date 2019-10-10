@@ -379,6 +379,7 @@ public class AggregationQueryAction extends QueryAction {
             for (Field field : fields) {
                 if (field != null) {
                     includeFields.add(field.getName());
+                    request.addStoredField(field.getName());
                 }
             }
 
@@ -393,7 +394,7 @@ public class AggregationQueryAction extends QueryAction {
 
                 if (field.getName().equals("script")) {
                     //question addStoredField()是什么鬼？
-                    request.addStoredField(field.getAlias());
+//                    request.addStoredField(field.getAlias());
 
                     /*
                     zhongshu-comment 将request传进去defaultQueryAction对象是为了调用setFields()中的这一行代码：request.setFetchSource(),
@@ -421,7 +422,7 @@ public class AggregationQueryAction extends QueryAction {
             } else if (field instanceof Field) {
 
                 //question 为什么Filed类型的字段不需要像MethodField类型字段一样设置include、exclude字段：request.setFetchSource()
-                request.addStoredField(field.getName());
+//                request.addStoredField(field.getName());
             } else {
                 throw new SqlParseException("it did not support this field method " + field);
             }
