@@ -90,4 +90,12 @@ public class ElasticSearchArray implements Array {
     public List<List<Object>> getLines() {
         return lines;
     }
+
+    @Override
+    public String toString() {
+        return "ElasticSearchArray{" +
+                "headers=" + headers +
+                ", lines=" + lines +
+                '}';
+    }
 }

@@ -1113,4 +1113,12 @@ public class ElasticSearchResultSet implements ResultSet {
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return false;
     }
+
+    @Override
+    public String toString() {
+        return "ElasticSearchResultSet{" +
+                "rows=" + rows +
+                ", headers=" + headers +
+                '}';
+    }
 }
