@@ -44,7 +44,7 @@ public class ElasticSearchStatement implements Statement {
             e.printStackTrace();
         }
 
-        this.result = new ElasticSearchResultSet(this, headers, lines);
+        this.result = new ElasticSearchResultSet(headers, lines);
 
         return this.result;
     }

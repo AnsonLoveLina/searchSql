@@ -24,7 +24,7 @@ public class ElasticSearchResultSet implements ResultSet {
 
     private ResultSetMetaData metaData;
 
-    public ElasticSearchResultSet(Statement statement, final List<String> headers, final List<List<Object>> lines) {
+    public ElasticSearchResultSet(final List<String> headers, final List<List<Object>> lines) {
         this.rows = lines;
         this.headers = headers;
         metaData = new ElasticSearchResultSetMetaDataBase(headers);
@@ -746,7 +746,7 @@ public class ElasticSearchResultSet implements ResultSet {
 
     @Override
     public Array getArray(int columnIndex) throws SQLException {
-        return null;
+        return (Array) current.get(columnIndex - 1);
     }
 
     @Override
@@ -771,7 +771,7 @@ public class ElasticSearchResultSet implements ResultSet {
 
     @Override
     public Array getArray(String columnLabel) throws SQLException {
-        return null;
+        return (Array) current.get(headers.indexOf(columnLabel));
     }
 
     @Override

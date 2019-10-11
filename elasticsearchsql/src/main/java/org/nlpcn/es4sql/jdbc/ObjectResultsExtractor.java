@@ -4,6 +4,8 @@ import com.google.common.collect.Maps;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.document.DocumentField;
+import org.elasticsearch.jdbc.ElasticSearchArray;
+import org.elasticsearch.jdbc.ElasticSearchResultSet;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.aggregations.Aggregation;
@@ -20,7 +22,10 @@ import org.nlpcn.es4sql.Util;
 import org.nlpcn.es4sql.Action;
 import org.nlpcn.es4sql.query.DefaultQueryAction;
 
+import java.sql.SQLException;
 import java.util.*;
+
+import static org.nlpcn.es4sql.Util.COUNT_NAME;
 
 /**
  * Created by allwefantasy on 8/30/16.
@@ -54,7 +59,7 @@ public class ObjectResultsExtractor {
             List<String> headers = new ArrayList<>();
             List<List<Object>> lines = new ArrayList<>();
             lines.add(new ArrayList<Object>());
-            handleAggregations((Aggregations) queryResult, headers, lines);
+            handleAggregations((Aggregations) queryResult, headers, lines, 0);
 
             // remove empty line。
             if (lines.get(0).size() == 0) {
@@ -83,64 +88,80 @@ public class ObjectResultsExtractor {
         return null;
     }
 
-    private void handleAggregations(Aggregations aggregations, List<String> headers, List<List<Object>> lines) throws ObjectResultsExtractException {
+    private void handleAggregations(Aggregations aggregations, List<String> headers, List<List<Object>> lines, int lineIndex) throws ObjectResultsExtractException {
         if (allNumericAggregations(aggregations)) {
-            lines.get(this.currentLineIndex).addAll(fillHeaderAndCreateLineForNumericAggregations(aggregations, headers));
+            lines.get(lineIndex).addAll(fillHeaderAndCreateLineForNumericAggregations(aggregations, headers));
             return;
         }
         //aggregations with size one only supported when not metrics.
         List<Aggregation> aggregationList = aggregations.asList();
-        if (aggregationList.size() > 1) {
-            throw new ObjectResultsExtractException("currently support only one aggregation at same level (Except for numeric metrics)");
-        }
-        Aggregation aggregation = aggregationList.get(0);
-        //we want to skip singleBucketAggregations (nested,reverse_nested,filters)
-        if (aggregation instanceof SingleBucketAggregation) {
-            Aggregations singleBucketAggs = ((SingleBucketAggregation) aggregation).getAggregations();
-            handleAggregations(singleBucketAggs, headers, lines);
-            return;
-        }
-        if (aggregation instanceof NumericMetricsAggregation) {
-            handleNumericMetricAggregation(headers, lines.get(currentLineIndex), aggregation);
-            return;
-        }
-        if (aggregation instanceof GeoBounds) {
-            handleGeoBoundsAggregation(headers, lines, (GeoBounds) aggregation);
-            return;
-        }
-        if (aggregation instanceof TopHits) {
-            //todo: handle this . it returns hits... maby back to normal?
-            //todo: read about this usages
-            // TopHits topHitsAggregation = (TopHits) aggregation;
-        }
-        if (aggregation instanceof MultiBucketsAggregation) {
-            MultiBucketsAggregation bucketsAggregation = (MultiBucketsAggregation) aggregation;
-            String name = bucketsAggregation.getName();
-            //checking because it can comes from sub aggregation again
-            if (!headers.contains(name)) {
-                headers.add(name);
+//        if (aggregationList.size() > 1) {
+//            throw new ObjectResultsExtractException("currently support only one aggregation at same level (Except for numeric metrics)");
+//        }
+        for (Aggregation aggregation : aggregationList) {
+
+//        Aggregation aggregation = aggregationList.get(0);
+            //we want to skip singleBucketAggregations (nested,reverse_nested,filters)
+            if (aggregation instanceof SingleBucketAggregation) {
+                Aggregations singleBucketAggs = ((SingleBucketAggregation) aggregation).getAggregations();
+                handleAggregations(singleBucketAggs, headers, lines, 0);
+                return;
             }
-            Collection<? extends MultiBucketsAggregation.Bucket> buckets = bucketsAggregation.getBuckets();
-
-            //clone current line.
-            List<Object> currentLine = lines.get(this.currentLineIndex);
-            List<Object> clonedLine = new ArrayList<>(currentLine);
-
-            //call handle_Agg with current_line++
-            boolean firstLine = true;
-            for (MultiBucketsAggregation.Bucket bucket : buckets) {
-                //each bucket need to add new line with current line copied => except for first line
-                String key = bucket.getKeyAsString();
-                if (firstLine) {
-                    firstLine = false;
-                } else {
-                    currentLineIndex++;
-                    currentLine = new ArrayList<Object>(clonedLine);
-                    lines.add(currentLine);
+            if (aggregation instanceof NumericMetricsAggregation) {
+                handleNumericMetricAggregation(headers, lines.get(0), aggregation);
+                return;
+            }
+            if (aggregation instanceof GeoBounds) {
+                handleGeoBoundsAggregation(headers, lines, (GeoBounds) aggregation);
+                return;
+            }
+            if (aggregation instanceof TopHits) {
+                //todo: handle this . it returns hits... maby back to normal?
+                //todo: read about this usages
+                // TopHits topHitsAggregation = (TopHits) aggregation;
+            }
+            if (aggregation instanceof MultiBucketsAggregation) {
+                MultiBucketsAggregation bucketsAggregation = (MultiBucketsAggregation) aggregation;
+                String name = bucketsAggregation.getName();
+                //checking because it can comes from sub aggregation again
+                if (!headers.contains(name) && lineIndex == 0) {
+                    headers.add(name + "BUCKS");
                 }
-                currentLine.add(key);
-                handleAggregations(bucket.getAggregations(), headers, lines);
+                Collection<? extends MultiBucketsAggregation.Bucket> buckets = bucketsAggregation.getBuckets();
 
+                //clone current line.
+                ElasticSearchArray elasticSearchArray = new ElasticSearchArray();
+                List<Object> currentLine = lines.get(lineIndex);
+                currentLine.add(elasticSearchArray);
+                List<String> bucksHeaders = elasticSearchArray.getHeaders();
+                List<List<Object>> bucksLines = elasticSearchArray.getLines();
+                bucksHeaders.add(name + "KEY");
+                bucksHeaders.add(name + "COUNT");
+//                List<Object> clonedLine = new ArrayList<>(currentLine);
+
+                //call handle_Agg with current_line++
+                boolean firstLine = true;
+                int i = 0;
+                for (MultiBucketsAggregation.Bucket bucket : buckets) {
+                    //each bucket need to add new line with current line copied => except for first line
+                    String key = bucket.getKeyAsString();
+                    long docCount = bucket.getDocCount();
+                    List<Object> buckCurrentLine = new ArrayList<>();
+                    bucksLines.add(buckCurrentLine);
+                    buckCurrentLine.add(key);
+                    buckCurrentLine.add(docCount);
+//                    if (firstLine) {
+//                        firstLine = false;
+//                    } else {
+//                        currentLineIndex++;
+//                        currentLine = new ArrayList<Object>(clonedLine);
+//                        lines.add(currentLine);
+//                    }
+//                    currentLine.add(key);
+//                currentLine.add(docCount);
+                    handleAggregations(bucket.getAggregations(), bucksHeaders, bucksLines, i);
+                    i++;
+                }
             }
         }
 
@@ -152,7 +173,7 @@ public class ObjectResultsExtractor {
         headers.add(geoBoundAggName + ".topLeft.lat");
         headers.add(geoBoundAggName + ".bottomRight.lon");
         headers.add(geoBoundAggName + ".bottomRight.lat");
-        List<Object> line = lines.get(this.currentLineIndex);
+        List<Object> line = lines.get(0);
         line.add(String.valueOf(geoBoundsAggregation.topLeft().getLon()));
         line.add(String.valueOf(geoBoundsAggregation.topLeft().getLat()));
         line.add(String.valueOf(geoBoundsAggregation.bottomRight().getLon()));

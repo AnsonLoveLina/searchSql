@@ -27,6 +27,8 @@ public class Test {
 
     private static String query1 = "SELECT parent,fieldA from  " + my_index_relation + " limit 0,10";
 
+    private static String query3 = "SELECT /*! HIGHLIGHT(*,pre_tags:['<em>'],post_tags:['</em>'])*/* from  \" + my_index + \" where key='value' group by key.keyword";
+
     private static String insertSql1 = "insert into " + my_index + " values(true,'1990-01-01 12:11:11',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
 
     private static String insertSql2 = "insert into " + my_index + "(fieldDate,fieldKeyword,fieldText) values('1990-01-01 12:11:11','是的','中华人民共和国')";

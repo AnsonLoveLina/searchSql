@@ -682,7 +682,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 			throws SQLException {
         List<String> headers = Lists.newArrayList("PROCEDURE_CAT","PROCEDURE_SCHEM","PROCEDURE_NAME","reserved_1","reserved_2","reserved_3","REMARKS","PROCEDURE_TYPE","SPECIFIC_NAME");
         List<List<Object>> lines = new ArrayList<>();
-		return new ElasticSearchResultSet(null,headers,lines);
+		return new ElasticSearchResultSet(headers,lines);
 	}
 
 	@Override
@@ -690,7 +690,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 			String columnNamePattern) throws SQLException {
         List<String> headers = Lists.newArrayList("PROCEDURE_CAT","PROCEDURE_SCHEM","PROCEDURE_NAME","COLUMN_NAME","COLUMN_TYPE","TYPE_NAME","PRECISION","LENGTH","SCALE","RADIX","NULLABLE","REMARKS","COLUMN_DEF","SQL_DATA_TYPE","SQL_DATETIME_SUB","CHAR_OCTET_LENGTH","ORDINAL_POSITION","IS_NULLABLE","SPECIFIC_NAME");
         List<List<Object>> lines = new ArrayList<>();
-        return new ElasticSearchResultSet(null,headers,lines);
+        return new ElasticSearchResultSet(headers,lines);
 	}
 
 	@Override
@@ -698,7 +698,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 			throws SQLException {
         List<String> headers = Lists.newArrayList("TABLE_CAT","TABLE_SCHEM","TABLE_NAME","TABLE_TYPE","REMARKS","TYPE_CAT","TYPE_SCHEM","TYPE_NAME","SELF_REFERENCING_COL_NAME","REF_GENERATION");
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 
 		//if(catalog != null && !catalog.equals(Util.CATALOG)) return result;
 		boolean lookForTables = types == null;
@@ -782,7 +782,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 
         List<String> headers = Lists.newArrayList("TABLE_SCHEM","TABLE_CATALOG");
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		for(String key : aliasAndIndices.keySet()){
 			List<Object> row = result.getNewRow();
 			row.set(0, key);
@@ -797,7 +797,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 
         List<String> headers = Lists.newArrayList("TABLE_CAT");
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		List<Object> row = result.getNewRow();
 		row.set(0, "elasticsearch");
 		result.add(row);
@@ -809,7 +809,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 
         List<String> headers = Lists.newArrayList("TABLE_TYPE");
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		//System.out.println("TABLE TYPES");
 		List<Object> row = result.getNewRow();
 		row.set(0, "TABLE");
@@ -834,7 +834,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 
         List<String> headers = Lists.newArrayList("TABLE_CAT","TABLE_SCHEM","TABLE_NAME","COLUMN_NAME","DATA_TYPE","TYPE_NAME","COLUMN_SIZE","BUFFER_LENGTH","DECIMAL_DIGITS","NUM_PREC_RADIX","NULLABLE","REMARKS","COLUMN_DEF","SQL_DATA_TYPE","SQL_DATETIME_SUB","CHAR_OCTET_LENGTH","ORDINAL_POSITION","IS_NULLABLE","SCOPE_CATALOG","SCOPE_SCHEMA","SCOPE_TABLE","SOURCE_DATA_TYPE","IS_AUTOINCREMENT","IS_GENERATEDCOLUMN");
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		//if(catalog != null && !catalog.equals(Util.CATALOG)) return result;
 
 		try{
@@ -1081,7 +1081,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 	public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
         List<String> headers = Lists.newArrayList("TABLE_CAT","TABLE_SCHEM","TABLE_NAME","COLUMN_NAME","KEY_SEQ","PK_NAME");
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		List<Object> row = result.getNewRow();
 		row.set(0, catalog);
 		row.set(1, schema);
@@ -1096,7 +1096,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 	public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
         List<String> headers = Lists.newArrayList("PKTABLE_CAT","PKTABLE_SCHEM","PKTABLE_NAME","PKCOLUMN_NAME","FKTABLE_CAT","FKTABLE_SCHEM","FKTABLE_NAME","FKCOLUMN_NAME","KEY_SEQ","UPDATE_RULE","DELETE_RULE","FK_NAME","PK_NAME","DEFERRABILITY");
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		return result;
 	}
 
@@ -1104,7 +1104,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 	public ResultSet getExportedKeys(String catalog, String schema, String table) throws SQLException {
         List<String> headers = Lists.newArrayList();
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		return result;
 	}
 
@@ -1113,7 +1113,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 			String foreignCatalog, String foreignSchema, String foreignTable) throws SQLException {
         List<String> headers = Lists.newArrayList();
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		return result;
 	}
 
@@ -1121,7 +1121,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 	public ResultSet getTypeInfo() throws SQLException {
         List<String> headers = Lists.newArrayList();
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		return result;
 	}
 
@@ -1130,7 +1130,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 			throws SQLException {
         List<String> headers = Lists.newArrayList();
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		return result;
 	}
 
@@ -1348,7 +1348,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 			throws SQLException {
         List<String> headers = Lists.newArrayList();
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		return result;
 	}
 
@@ -1357,7 +1357,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 			String columnNamePattern) throws SQLException {
         List<String> headers = Lists.newArrayList();
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		return result;
 	}
 
@@ -1366,7 +1366,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 			String columnNamePattern) throws SQLException {
         List<String> headers = Lists.newArrayList();
         List<List<Object>> lines = new ArrayList<>();
-        ElasticSearchResultSet result = new ElasticSearchResultSet(null,headers,lines);
+        ElasticSearchResultSet result = new ElasticSearchResultSet(headers,lines);
 		return result;
 	}
 

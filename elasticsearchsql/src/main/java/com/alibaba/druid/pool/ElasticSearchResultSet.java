@@ -567,7 +567,7 @@ public class ElasticSearchResultSet implements ResultSet {
 
     @Override
     public void updateObject(int columnIndex, Object x) throws SQLException {
-        throw new RuntimeException("update is not support yet");
+        throw new SQLFeatureNotSupportedException();
     }
 
     @Override

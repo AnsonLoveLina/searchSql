@@ -17,6 +17,12 @@ public class TestJDBC {
 
     private static String query2 = "SELECT parent,fieldA from  " + my_index_relation + " limit 0,10";
 
+    private static String group1 = "SELECT stats(key2) from  " + my_index + " group by (key2,key3)";
+
+    private static String group2 = "SELECT stats(key2) from  " + my_index + " ";
+
+    private static String group3 = "SELECT stats(key2) from  " + my_index + " group by (key2),(key3)";
+
     private static String insertSql1 = "insert into " + my_index + " values(true,'1990-01-01 12:11:11',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
 
     private static String insertSql2 = "insert into " + my_index + "(fieldDate,fieldKeyword,fieldText) values('1990-01-01 12:11:11','是的','中华人民共和国')";
@@ -42,8 +48,8 @@ public class TestJDBC {
     private static String param = "";
     private static java.util.Properties info = new java.util.Properties();
 
-    static{
-        param = "xpack.security.user="+user + ":" + password+"&xpack.security.transport.ssl.enabled=true&xpack.security.transport.ssl.verification_mode=certificate&xpack.security.transport.ssl.keystore.path=/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12&xpack.security.transport.ssl.truststore.path=/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12";
+    static {
+        param = "xpack.security.user=" + user + ":" + password + "&xpack.security.transport.ssl.enabled=true&xpack.security.transport.ssl.verification_mode=certificate&xpack.security.transport.ssl.keystore.path=/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12&xpack.security.transport.ssl.truststore.path=/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12";
         info.put("xpack.security.user", user + ":" + password);
         info.put("xpack.security.transport.ssl.enabled", "true");
         info.put("xpack.security.transport.ssl.verification_mode", "certificate");
@@ -93,11 +99,22 @@ public class TestJDBC {
     @org.junit.Test
     public void testQueryStatement() throws Exception {
         Class.forName("org.elasticsearch.jdbc.ElasticSearchDriver");
-        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300?"+param);
+        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300?" + param);
         Statement statement = connection.createStatement();
-        ResultSet resultSet = statement.executeQuery(query1);
-        while (resultSet.next()) {
-            System.out.println(resultSet.getString("key"));
+        ResultSet resultSet1 = statement.executeQuery(group1);
+        while (resultSet1.next()) {
+            Array array = resultSet1.getArray("key2BUCKS");
+            System.out.println("array = " + array);
+        }
+        ResultSet resultSet2 = statement.executeQuery(group2);
+        while (resultSet2.next()) {
+            Long array = resultSet2.getLong("stats(key2).count");
+            System.out.println("array = " + array);
+        }
+        ResultSet resultSet3 = statement.executeQuery(group3);
+        while (resultSet3.next()) {
+            Array array = resultSet3.getArray("key2BUCKS");
+            System.out.println("array = " + array);
         }
         statement.close();
         connection.close();
