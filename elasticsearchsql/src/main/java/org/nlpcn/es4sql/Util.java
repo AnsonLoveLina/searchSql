@@ -20,7 +20,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Util {
 
-    public static final String COUNT_NAME = "count";
+    public static final String BUCKS_NAME = "BUCKS";
+
+    public static final String KEY_NAME = "KEY";
+
+    public static final String COUNT_NAME = "COUNT";
 
     public static final String DEFAULTTYPE = "doc";
 

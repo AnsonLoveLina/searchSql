@@ -125,7 +125,7 @@ public class ObjectResultsExtractor {
                 String name = bucketsAggregation.getName();
                 //checking because it can comes from sub aggregation again
                 if (!headers.contains(name) && lineIndex == 0) {
-                    headers.add(name + "BUCKS");
+                    headers.add(name + Util.BUCKS_NAME);
                 }
                 Collection<? extends MultiBucketsAggregation.Bucket> buckets = bucketsAggregation.getBuckets();
 
@@ -135,8 +135,8 @@ public class ObjectResultsExtractor {
                 currentLine.add(elasticSearchArray);
                 List<String> bucksHeaders = elasticSearchArray.getHeaders();
                 List<List<Object>> bucksLines = elasticSearchArray.getLines();
-                bucksHeaders.add(name + "KEY");
-                bucksHeaders.add(name + "COUNT");
+                bucksHeaders.add(name + Util.KEY_NAME);
+                bucksHeaders.add(name + Util.COUNT_NAME);
 //                List<Object> clonedLine = new ArrayList<>(currentLine);
 
                 //call handle_Agg with current_line++
