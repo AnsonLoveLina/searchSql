@@ -44,7 +44,7 @@ public class TestJDBC {
     private static String updateSql4 = "update " + my_index + " set fieldBoolean=false,fieldDate='1990-01-01 12',fieldDouble=1.11,fieldGeoPoin='41.12,-71.34',fieldInteger=2,fieldKeyword='是的',fieldLong=2320909,fieldText='中华人民共和国'";
 
     private static String user = "elastic";
-    private static String password = "changeme";
+    private static String password = "xx198742";
     private static String param = "";
     private static String param1 = "";
     private static java.util.Properties info = new java.util.Properties();
@@ -109,16 +109,16 @@ public class TestJDBC {
             Array array = resultSet1.getArray("key2BUCKS");
             System.out.println("array = " + array);
         }
-//        ResultSet resultSet2 = statement.executeQuery(group2);
-//        while (resultSet2.next()) {
-//            Long array = resultSet2.getLong("stats(key2).count");
-//            System.out.println("array = " + array);
-//        }
-//        ResultSet resultSet3 = statement.executeQuery(group3);
-//        while (resultSet3.next()) {
-//            Array array = resultSet3.getArray("key2BUCKS");
-//            System.out.println("array = " + array);
-//        }
+        ResultSet resultSet2 = statement.executeQuery(group2);
+        while (resultSet2.next()) {
+            Long array = resultSet2.getLong("stats(key2).count");
+            System.out.println("array = " + array);
+        }
+        ResultSet resultSet3 = statement.executeQuery(group3);
+        while (resultSet3.next()) {
+            Array array = resultSet3.getArray("key2BUCKS");
+            System.out.println("array = " + array);
+        }
         statement.close();
         connection.close();
     }
