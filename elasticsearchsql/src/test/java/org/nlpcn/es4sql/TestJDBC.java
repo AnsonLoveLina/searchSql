@@ -44,17 +44,19 @@ public class TestJDBC {
     private static String updateSql4 = "update " + my_index + " set fieldBoolean=false,fieldDate='1990-01-01 12',fieldDouble=1.11,fieldGeoPoin='41.12,-71.34',fieldInteger=2,fieldKeyword='是的',fieldLong=2320909,fieldText='中华人民共和国'";
 
     private static String user = "elastic";
-    private static String password = "xx198742";
+    private static String password = "changeme";
     private static String param = "";
+    private static String param1 = "";
     private static java.util.Properties info = new java.util.Properties();
 
     static {
+        param1 = "xpack.security.user=" + user + ":" + password + "&cluster.name=VV7im_K";
         param = "xpack.security.user=" + user + ":" + password + "&xpack.security.transport.ssl.enabled=true&xpack.security.transport.ssl.verification_mode=certificate&xpack.security.transport.ssl.keystore.path=/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12&xpack.security.transport.ssl.truststore.path=/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12";
         info.put("xpack.security.user", user + ":" + password);
         info.put("xpack.security.transport.ssl.enabled", "true");
         info.put("xpack.security.transport.ssl.verification_mode", "certificate");
-        info.put("xpack.security.transport.ssl.keystore.path", "/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12");
-        info.put("xpack.security.transport.ssl.truststore.path", "/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12");
+        info.put("xpack.security.transport.ssl.keystore.path", "/Users/zy-xx/elasticsearch.keystore");
+        info.put("xpack.security.transport.ssl.truststore.path", "/Users/zy-xx/elasticsearch.keystore");
     }
 
     @org.junit.Test
@@ -99,23 +101,24 @@ public class TestJDBC {
     @org.junit.Test
     public void testQueryStatement() throws Exception {
         Class.forName("org.elasticsearch.jdbc.ElasticSearchDriver");
-        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300?" + param);
+        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://127.0.0.1:9300?" + param1);
+//        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300","elastic","changeme");
         Statement statement = connection.createStatement();
-        ResultSet resultSet1 = statement.executeQuery(group1);
+        ResultSet resultSet1 = statement.executeQuery("select * from monitoring-data-2");
         while (resultSet1.next()) {
             Array array = resultSet1.getArray("key2BUCKS");
             System.out.println("array = " + array);
         }
-        ResultSet resultSet2 = statement.executeQuery(group2);
-        while (resultSet2.next()) {
-            Long array = resultSet2.getLong("stats(key2).count");
-            System.out.println("array = " + array);
-        }
-        ResultSet resultSet3 = statement.executeQuery(group3);
-        while (resultSet3.next()) {
-            Array array = resultSet3.getArray("key2BUCKS");
-            System.out.println("array = " + array);
-        }
+//        ResultSet resultSet2 = statement.executeQuery(group2);
+//        while (resultSet2.next()) {
+//            Long array = resultSet2.getLong("stats(key2).count");
+//            System.out.println("array = " + array);
+//        }
+//        ResultSet resultSet3 = statement.executeQuery(group3);
+//        while (resultSet3.next()) {
+//            Array array = resultSet3.getArray("key2BUCKS");
+//            System.out.println("array = " + array);
+//        }
         statement.close();
         connection.close();
     }

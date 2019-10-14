@@ -23,7 +23,7 @@ public class Test {
 
     private static final String my_index = "my_index";
 
-    private static String query2 = "SELECT ZJHM,SSS from  " + my_index;
+    private static String query2 = "SELECT /*! HIGHLIGHT(*,pre_tags:['<em>'],post_tags:['</em>'])*/* from ['v_znb_05_kzzyga009_new'] where ll=matchphrase('网吧')";
 
     private static String query1 = "SELECT parent,fieldA from  " + my_index_relation + " limit 0,10";
 

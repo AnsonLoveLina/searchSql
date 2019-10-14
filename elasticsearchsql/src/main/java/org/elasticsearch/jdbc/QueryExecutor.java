@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-import static org.elasticsearch.xpack.core.security.authc.support.UsernamePasswordToken.basicAuthHeaderValue;
 
 public class QueryExecutor {
 
