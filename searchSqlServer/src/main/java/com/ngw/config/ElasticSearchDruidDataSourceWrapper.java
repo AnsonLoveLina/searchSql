@@ -18,7 +18,6 @@ package com.ngw.config;
 import com.alibaba.druid.filter.config.ConfigFilter;
 import com.alibaba.druid.filter.encoding.EncodingConvertFilter;
 import com.alibaba.druid.filter.logging.CommonsLogFilter;
-import com.alibaba.druid.filter.logging.Log4j2Filter;
 import com.alibaba.druid.filter.logging.Log4jFilter;
 import com.alibaba.druid.filter.logging.Slf4jLogFilter;
 import com.alibaba.druid.filter.stat.StatFilter;
@@ -79,12 +78,6 @@ class ElasticSearchDruidDataSourceWrapper extends DruidDataSource implements Ini
     public void addLog4jFilter(Log4jFilter log4jFilter) {
         super.filters.add(log4jFilter);
     }
-
-    @Autowired(required = false)
-    public void addLog4j2Filter(Log4j2Filter log4j2Filter) {
-        super.filters.add(log4j2Filter);
-    }
-
     @Autowired(required = false)
     public void addCommonsLogFilter(CommonsLogFilter commonsLogFilter) {
         super.filters.add(commonsLogFilter);

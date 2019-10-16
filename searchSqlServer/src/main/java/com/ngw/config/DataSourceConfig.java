@@ -4,7 +4,6 @@ package com.ngw.config;
  * Created by zy-xx on 2019/9/18.
  */
 
-import com.alibaba.druid.pool.ElasticSearchDruidDataSourceBuilder;
 import com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

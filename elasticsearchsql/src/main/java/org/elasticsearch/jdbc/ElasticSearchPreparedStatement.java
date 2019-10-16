@@ -120,7 +120,14 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
     @Override
     public void setString(int parameterIndex, String x) throws SQLException {
         // TODO: escape
-        this.sqlAndParams[(parameterIndex * 2) - 1] = x == null ? null : "'" + x + "'";
+        if (x == null) {
+            this.sqlAndParams[(parameterIndex * 2) - 1] = null;
+            return;
+        }
+        if (x.contains("'")) {
+            x = x.replaceAll("'", "\\\\'");
+        }
+        this.sqlAndParams[(parameterIndex * 2) - 1] = "'" + x + "'";
     }
 
     @Override

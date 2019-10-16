@@ -84,7 +84,7 @@ public class TestJDBC {
         ps.setString(4,null);
         int result = ps.executeUpdate();
         connection.commit();
-        ps.setString(1,"涨\\是");
+        ps.setString(1,"涨\\\\是'");
         ps.setString(2,null);
         ps.setString(3,"XZXT.LASDS");
         ps.setString(4,"1");

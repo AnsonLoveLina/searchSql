@@ -30,6 +30,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.BiConsumer;
 
 
 public class QueryExecutor {
@@ -82,14 +83,27 @@ public class QueryExecutor {
             synchronized (this) {
                 if (client == null) {
                     Settings.Builder builder = Settings.builder();
+
+                    final boolean[] clientClass = {false, false};
                     String user = info.getProperty("user");
                     String password = info.getProperty("password");
                     if (StringUtil.isNotBlank(user) && StringUtil.isNotBlank(password)) {
                         builder.put("xpack.security.user", user + ":" + password);
+                        clientClass[0] = true;
                         info.remove("user");
                         info.remove("password");
                     }
-                    info.forEach((k, v) -> builder.put(k.toString(), v.toString()));
+
+                    info.forEach((k, v) -> {
+                        if (!clientClass[0] && k.toString().contains("xpack")) {
+                            clientClass[0] = true;
+                        }
+                        if (!clientClass[1] && k.toString().contains("searchguard")) {
+                            clientClass[1] = true;
+                        }
+                        builder.put(k.toString(), v.toString());
+                    });
+//                    info.forEach((k, v) -> builder.put(k.toString(), v.toString()));
 
                     TransportAddress[] addresses = new TransportAddress[uriList.size()];
                     try {
@@ -100,7 +114,13 @@ public class QueryExecutor {
                         throw new SQLException(e);
                     }
 
-                    client = new PreBuiltXPackTransportClient(builder.build()).addTransportAddresses(addresses);
+                    if (clientClass[0]) {
+                        client = new PreBuiltXPackTransportClient(builder.build()).addTransportAddresses(addresses);
+                    } else if (clientClass[1]) {
+                        client = new PreBuiltTransportClient(builder.build(), SearchGuardSSLPlugin.class).addTransportAddresses(addresses);
+                    } else {
+                        client = new PreBuiltTransportClient(builder.build()).addTransportAddresses(addresses);
+                    }
 //                    client = new PreBuiltTransportClient(builder.build(), SearchGuardSSLPlugin.class).addTransportAddresses(addresses);
 //                    String token = basicAuthHeaderValue(user, new SecureString(password.toCharArray()));
 //

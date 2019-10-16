@@ -1,6 +1,8 @@
 package org.nlpcn.es4sql.exception;
 
-public class SqlParseException extends Exception {
+import java.sql.SQLException;
+
+public class SqlParseException extends SQLException {
 
     public SqlParseException(String message) {
         super(message);
