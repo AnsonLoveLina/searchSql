@@ -100,7 +100,7 @@ public class ElasticSearchConnection implements Connection {
                 }
                 st.getDMLActions().clear();
             }
-            cleartatements();
+//            cleartatements();
             queryExecutor.commit(bulkRequest);
             bulkRequest = this.client.prepareBulk();
         } catch (Exception e) {

@@ -90,7 +90,10 @@ public class SqlParser {
         for (int i = 0; i < columns.size(); i++) {
             SQLExpr columnName = columns.get(i);
             SQLExpr value = values.get(i);
-            insert.addValues(columnName.toString(), value.toString());
+            if (value instanceof SQLNullExpr) {
+                continue;
+            }
+//            insert.addValues(columnName.toString(), value.toString());
 //            SQLDataType sqlDataType = value.computeDataType();
 //            if (sqlDataType == null) {
 //                continue;
@@ -101,6 +104,10 @@ public class SqlParser {
                 insert.addValues(columnName.toString(), ((SQLNumberExpr) value).getNumber().doubleValue());
             } else if (value instanceof SQLIntegerExpr) {
                 insert.addValues(columnName.toString(), ((SQLIntegerExpr) value).getValue());
+            } else if (value instanceof SQLCharExpr) {
+                insert.addValues(columnName.toString(), ((SQLCharExpr) value).getValue());
+//            } else if (value instanceof SQLNullExpr) {
+//                insert.addValues(columnName.toString(), null);
             } else {
                 insert.addValues(columnName.toString(), value.toString());
             }

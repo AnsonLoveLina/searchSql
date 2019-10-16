@@ -4,6 +4,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.alibaba.druid.sql.parser.ParserException;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.client.Client;
 import org.nlpcn.es4sql.exception.SqlParseException;
@@ -14,38 +15,42 @@ import org.nlpcn.es4sql.query.SqlElasticRequestBuilder;
 
 public class SearchDao {
 
-	private static final Set<String> END_TABLE_MAP = new HashSet<>();
+    private static final Set<String> END_TABLE_MAP = new HashSet<>();
 
-	static {
-		END_TABLE_MAP.add("limit");
-		END_TABLE_MAP.add("order");
-		END_TABLE_MAP.add("where");
-		END_TABLE_MAP.add("group");
+    static {
+        END_TABLE_MAP.add("limit");
+        END_TABLE_MAP.add("order");
+        END_TABLE_MAP.add("where");
+        END_TABLE_MAP.add("group");
 
-	}
+    }
 
-	private Client client = null;
+    private Client client = null;
 
 
-	public SearchDao(Client client) {
-		this.client = client;
-	}
+    public SearchDao(Client client) {
+        this.client = client;
+    }
 
     public Client getClient() {
         return client;
     }
 
     /**
-	 * Prepare action And transform sql
-	 * into ES ActionRequest
-	 * @param sql SQL query to execute.
-	 * @return ES request
-	 * @throws SqlParseException
-	 */
-	public Action explain(String sql) throws SqlParseException, SQLFeatureNotSupportedException {
-		return ESActionFactory.create(client, sql);
-	}
-
+     * Prepare action And transform sql
+     * into ES ActionRequest
+     *
+     * @param sql SQL query to execute.
+     * @return ES request
+     * @throws SqlParseException
+     */
+    public Action explain(String sql) throws SqlParseException, SQLFeatureNotSupportedException {
+        try {
+            return ESActionFactory.create(client, sql);
+        } catch (ParserException | SqlParseException pe) {
+            throw new SqlParseException(sql, pe);
+        }
+    }
 
 
 }

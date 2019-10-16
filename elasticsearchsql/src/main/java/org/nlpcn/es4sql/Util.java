@@ -22,6 +22,8 @@ import org.nlpcn.es4sql.query.SqlElasticRequestBuilder;
 
 public class Util {
 
+    public static final String NULL = "'null'";
+
     public static final String BUCKS_NAME = "BUCKS";
 
     public static final String KEY_NAME = "KEY";

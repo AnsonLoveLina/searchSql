@@ -69,8 +69,12 @@ public class QueryExecutor {
     }
 
     public void commit(BulkRequestBuilder bulkRequestBuilder) throws Exception {
-        if (bulkRequestBuilder.request().requests().size() > 0)
-            bulkRequestBuilder.execute().actionGet();
+        if (bulkRequestBuilder.request().requests().size() > 0) {
+            BulkResponse bulkResponse = bulkRequestBuilder.execute().actionGet();
+            if (bulkResponse.hasFailures()) {
+                throw new SQLException(bulkResponse.buildFailureMessage());
+            }
+        }
     }
 
     private void buildClient() throws SQLException {
@@ -96,7 +100,8 @@ public class QueryExecutor {
                         throw new SQLException(e);
                     }
 
-                    client = new PreBuiltTransportClient(builder.build(), SearchGuardSSLPlugin.class).addTransportAddresses(addresses);
+                    client = new PreBuiltXPackTransportClient(builder.build()).addTransportAddresses(addresses);
+//                    client = new PreBuiltTransportClient(builder.build(), SearchGuardSSLPlugin.class).addTransportAddresses(addresses);
 //                    String token = basicAuthHeaderValue(user, new SecureString(password.toCharArray()));
 //
 //                    client.filterWithHeader(Collections.singletonMap("Authorization", token))
