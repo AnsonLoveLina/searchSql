@@ -1,15 +1,16 @@
 package org.nlpcn.es4sql.parse;
 
+import java.util.List;
+
+import org.nlpcn.es4sql.Util;
+import org.nlpcn.es4sql.domain.Where;
+import org.nlpcn.es4sql.exception.SqlParseException;
+
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
-import org.nlpcn.es4sql.Util;
-import org.nlpcn.es4sql.domain.Where;
-import org.nlpcn.es4sql.exception.SqlParseException;
-
-import java.util.List;
 
 /**
  * Created by Razma Tazz on 14/04/2016.

@@ -5,15 +5,14 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.text.Text;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.internal.InternalSearchHit;
+import org.elasticsearch.search.internal.InternalSearchHits;
 import org.nlpcn.es4sql.Util;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import org.nlpcn.es4sql.query.multi.MultiQueryRequestBuilder;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by Eliran on 21/8/2016.
@@ -34,26 +33,26 @@ public class UnionExecutor implements ElasticHitsExecutor {
     @Override
     public void run() throws IOException, SqlParseException {
         SearchResponse firstResponse = this.multiQueryBuilder.getFirstSearchRequest().get();
-        SearchHit[] hits = firstResponse.getHits().getHits();
-        List<SearchHit> unionHits = new ArrayList<>(hits.length);
+        SearchHit[] hits = firstResponse.getHits().hits();
+        List<InternalSearchHit> unionHits = new ArrayList<>(hits.length);
         fillInternalSearchHits(unionHits,hits,this.multiQueryBuilder.getFirstTableFieldToAlias());
         SearchResponse secondResponse = this.multiQueryBuilder.getSecondSearchRequest().get();
-        fillInternalSearchHits(unionHits,secondResponse.getHits().getHits(),this.multiQueryBuilder.getSecondTableFieldToAlias());
+        fillInternalSearchHits(unionHits,secondResponse.getHits().hits(),this.multiQueryBuilder.getSecondTableFieldToAlias());
         int totalSize = unionHits.size();
-        SearchHit[] unionHitsArr = unionHits.toArray(new SearchHit[totalSize]);
-        this.results = new SearchHits(unionHitsArr, totalSize,1.0f);
+        InternalSearchHit[] unionHitsArr = unionHits.toArray(new InternalSearchHit[totalSize]);
+        this.results = new InternalSearchHits(unionHitsArr, totalSize,1.0f);
     }
 
-    private void fillInternalSearchHits(List<SearchHit> unionHits, SearchHit[] hits, Map<String, String> fieldNameToAlias) {
+    private void fillInternalSearchHits(List<InternalSearchHit> unionHits, SearchHit[] hits, Map<String, String> fieldNameToAlias) {
         for(SearchHit hit : hits){
-            SearchHit searchHit = new SearchHit(currentId, hit.getId(), new Text(hit.getType()), hit.getFields());
+            InternalSearchHit searchHit = new InternalSearchHit(currentId,hit.getId().toString(), new Text(hit.getType()), hit.fields());
             searchHit.sourceRef(hit.getSourceRef());
-            searchHit.getSourceAsMap().clear();
-            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+            searchHit.sourceAsMap().clear();
+            Map<String, Object> sourceAsMap = hit.sourceAsMap();
             if(!fieldNameToAlias.isEmpty()){
                 updateFieldNamesToAlias(sourceAsMap, fieldNameToAlias);
             }
-            searchHit.getSourceAsMap().putAll(sourceAsMap);
+            searchHit.sourceAsMap().putAll(sourceAsMap);
             currentId++;
             unionHits.add(searchHit);
         }

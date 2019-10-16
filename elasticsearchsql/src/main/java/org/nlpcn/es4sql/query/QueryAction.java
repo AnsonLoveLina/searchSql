@@ -3,12 +3,6 @@ package org.nlpcn.es4sql.query;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.nlpcn.es4sql.Action;
 import org.nlpcn.es4sql.domain.Query;
@@ -17,9 +11,7 @@ import org.nlpcn.es4sql.domain.hints.Hint;
 import org.nlpcn.es4sql.domain.hints.HintType;
 import org.nlpcn.es4sql.exception.SqlParseException;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -28,63 +20,27 @@ import java.util.Map;
  */
 public abstract class QueryAction implements Action {
 
-    protected org.nlpcn.es4sql.domain.Query query;
-    protected Client client;
+	protected org.nlpcn.es4sql.domain.Query query;
+	protected Client client;
 
-    public QueryAction(Client client, Query query) {
-        this.client = client;
-        this.query = query;
-    }
-
-    protected void updateRequestWithStats(Select select, SearchRequestBuilder request) {
-        for (Hint hint : select.getHints()) {
-            if (hint.getType() == HintType.STATS && hint.getParams() != null && 0 < hint.getParams().length) {
-                request.setStats(Arrays.stream(hint.getParams()).map(Object::toString).toArray(String[]::new));
-            }
-        }
-    }
-
-    protected void updateRequestWithCollapse(Select select, SearchRequestBuilder request) throws SqlParseException {
-        for (Hint hint : select.getHints()) {
-            if (hint.getType() == HintType.COLLAPSE && hint.getParams() != null && 0 < hint.getParams().length) {
-                try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, hint.getParams()[0].toString())) {
-                    request.setCollapse(CollapseBuilder.fromXContent(parser));
-                } catch (IOException e) {
-                    throw new SqlParseException("could not parse collapse hint: " + e.getMessage());
-                }
-            }
-        }
-    }
-
-    protected void updateRequestWithPostFilter(Select select, SearchRequestBuilder request) {
-        for (Hint hint : select.getHints()) {
-            if (hint.getType() == HintType.POST_FILTER && hint.getParams() != null && 0 < hint.getParams().length) {
-                request.setPostFilter(QueryBuilders.wrapperQuery(hint.getParams()[0].toString()));
-            }
-        }
-    }
+	public QueryAction(Client client, Query query) {
+		this.client = client;
+		this.query = query;
+	}
 
     protected void updateRequestWithIndexAndRoutingOptions(Select select, SearchRequestBuilder request) {
-        for (Hint hint : select.getHints()) {
-            if (hint.getType() == HintType.IGNORE_UNAVAILABLE) {
+        for(Hint hint : select.getHints()){
+            if(hint.getType() == HintType.IGNORE_UNAVAILABLE){
                 //saving the defaults from TransportClient search
                 request.setIndicesOptions(IndicesOptions.fromOptions(true, false, true, false, IndicesOptions.strictExpandOpenAndForbidClosed()));
             }
-            if (hint.getType() == HintType.ROUTINGS) {
+            if(hint.getType() == HintType.ROUTINGS){
                 Object[] routings = hint.getParams();
                 String[] routingsAsStringArray = new String[routings.length];
-                for (int i = 0; i < routings.length; i++) {
-                    routingsAsStringArray[i] = routings[i].toString();
+                for(int i=0;i<routings.length;i++){
+                    routingsAsStringArray[i]=routings[i].toString();
                 }
                 request.setRouting(routingsAsStringArray);
-            }
-        }
-    }
-
-    protected void updateRequestWithPreference(Select select, SearchRequestBuilder request) {
-        for (Hint hint : select.getHints()) {
-            if (hint.getType() == HintType.PREFERENCE && hint.getParams() != null && 0 < hint.getParams().length) {
-                request.setPreference(hint.getParams()[0].toString());
             }
         }
     }
@@ -92,33 +48,33 @@ public abstract class QueryAction implements Action {
     protected void updateRequestWithHighlight(Select select, SearchRequestBuilder request) {
         boolean foundAnyHighlights = false;
         HighlightBuilder highlightBuilder = new HighlightBuilder();
-        for (Hint hint : select.getHints()) {
-            if (hint.getType() == HintType.HIGHLIGHT) {
+        for(Hint hint : select.getHints()){
+            if(hint.getType() == HintType.HIGHLIGHT){
                 HighlightBuilder.Field highlightField = parseHighlightField(hint.getParams());
-                if (highlightField != null) {
+                if(highlightField != null){
                     foundAnyHighlights = true;
                     highlightBuilder.field(highlightField);
                 }
             }
         }
-        if (foundAnyHighlights) {
+        if(foundAnyHighlights){
             request.highlighter(highlightBuilder);
         }
     }
 
     protected HighlightBuilder.Field parseHighlightField(Object[] params)
     {
-        if (params == null || params.length == 0 || params.length > 2) {
+        if(params == null || params.length == 0 || params.length > 2){
             //todo: exception.
         }
         HighlightBuilder.Field field = new HighlightBuilder.Field(params[0].toString());
-        if (params.length == 1) {
+        if(params.length == 1){
             return field;
         }
-        Map<String, Object> highlightParams = (Map<String, Object>) params[1];
+        Map<String,Object> highlightParams = (Map<String,Object>) params[1];
 
-        for (Map.Entry<String, Object> param : highlightParams.entrySet()) {
-            switch (param.getKey()) {
+        for (Map.Entry<String,Object> param : highlightParams.entrySet()){
+            switch (param.getKey()){
                 case "type":
                     field.highlighterType((String) param.getValue());
                     break;
@@ -144,7 +100,7 @@ public abstract class QueryAction implements Action {
                     field.highlightFilter((Boolean) param.getValue());
                     break;
                 case "matched_fields":
-                    field.matchedFields((String[]) ((ArrayList) param.getValue()).toArray(new String[((ArrayList) param.getValue()).size()]));
+                    field.matchedFields((String[]) ((ArrayList)param.getValue()).toArray(new String[((ArrayList) param.getValue()).size()]));
                     break;
                 case "no_match_size":
                     field.noMatchSize((Integer) param.getValue());
@@ -159,10 +115,10 @@ public abstract class QueryAction implements Action {
                     field.phraseLimit((Integer) param.getValue());
                     break;
                 case "post_tags":
-                    field.postTags((String[]) ((ArrayList) param.getValue()).toArray(new String[((ArrayList) param.getValue()).size()]));
+                    field.postTags((String[]) ((ArrayList)param.getValue()).toArray(new String[((ArrayList) param.getValue()).size()]));
                     break;
                 case "pre_tags":
-                    field.preTags((String[]) ((ArrayList) param.getValue()).toArray(new String[((ArrayList) param.getValue()).size()]));
+                    field.preTags((String[]) ((ArrayList)param.getValue()).toArray(new String[((ArrayList) param.getValue()).size()]));
                     break;
                 case "require_field_match":
                     field.requireFieldMatch((Boolean) param.getValue());
@@ -173,10 +129,10 @@ public abstract class QueryAction implements Action {
         return field;
     }
 
-    private char[] fromArrayListToCharArray(ArrayList arrayList) {
+    private char[] fromArrayListToCharArray(ArrayList arrayList){
         char[] chars = new char[arrayList.size()];
-        int i = 0;
-        for (Object item : arrayList) {
+        int i=0;
+        for(Object item : arrayList){
             chars[i] = item.toString().charAt(0);
             i++;
         }
@@ -185,11 +141,9 @@ public abstract class QueryAction implements Action {
 
 
     /**
-     * Prepare the request, and return ES request.
-     * zhongshu-comment 将sql字符串解析后的java对象，转换为es的查询请求对象
-     *
-     * @return ActionRequestBuilder (ES request)
-     * @throws SqlParseException
-     */
-    public abstract SqlElasticRequestBuilder explain() throws SqlParseException;
+	 * Prepare the request, and return ES request.
+	 * @return ActionRequestBuilder (ES request)
+	 * @throws SqlParseException
+	 */
+	public abstract SqlElasticRequestBuilder explain() throws SqlParseException;
 }

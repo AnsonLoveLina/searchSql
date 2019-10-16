@@ -1,5 +1,6 @@
 package org.elasticsearch.jdbc;
 
+import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import jodd.util.StringUtil;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -7,8 +8,10 @@ import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.elasticsearch.xpack.client.PreBuiltXPackTransportClient;
 import org.nlpcn.es4sql.SearchDao;
 import org.nlpcn.es4sql.exception.SqlParseException;
@@ -49,7 +52,7 @@ public class QueryExecutor {
 
         Action queryAction = searchDao.explain(query);
         Object execution = QueryActionElasticExecutor.executeAnyAction(searchDao.getClient(), queryAction);
-        return new ObjectResultsExtractor(includeScore, includeType, includeId, false, queryAction).extractResults(execution, flat);
+        return new ObjectResultsExtractor(includeScore, includeType, includeId).extractResults(execution, flat);
     }
 
     public Action getAction(String query) throws Exception {
@@ -66,7 +69,8 @@ public class QueryExecutor {
     }
 
     public void commit(BulkRequestBuilder bulkRequestBuilder) throws Exception {
-        bulkRequestBuilder.execute().actionGet();
+        if (bulkRequestBuilder.request().requests().size() > 0)
+            bulkRequestBuilder.execute().actionGet();
     }
 
     private void buildClient() throws SQLException {
@@ -86,13 +90,13 @@ public class QueryExecutor {
                     TransportAddress[] addresses = new TransportAddress[uriList.size()];
                     try {
                         for (int i = 0; i < addresses.length; ++i) {
-                            addresses[i] = new TransportAddress(InetAddress.getByName(uriList.get(i).getHost()), uriList.get(i).getPort());
+                            addresses[i] = new InetSocketTransportAddress(InetAddress.getByName(uriList.get(i).getHost()), uriList.get(i).getPort());
                         }
                     } catch (UnknownHostException e) {
                         throw new SQLException(e);
                     }
 
-                    client = new PreBuiltXPackTransportClient(builder.build()).addTransportAddresses(addresses);
+                    client = new PreBuiltTransportClient(builder.build(), SearchGuardSSLPlugin.class).addTransportAddresses(addresses);
 //                    String token = basicAuthHeaderValue(user, new SecureString(password.toCharArray()));
 //
 //                    client.filterWithHeader(Collections.singletonMap("Authorization", token))

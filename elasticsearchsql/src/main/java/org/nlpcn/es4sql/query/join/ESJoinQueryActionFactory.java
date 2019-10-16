@@ -6,6 +6,7 @@ import org.nlpcn.es4sql.domain.JoinSelect;
 import org.nlpcn.es4sql.domain.hints.Hint;
 import org.nlpcn.es4sql.domain.hints.HintType;
 import org.nlpcn.es4sql.query.QueryAction;
+import org.nlpcn.es4sql.query.join.ESHashJoinQueryAction;
 
 import java.util.List;
 

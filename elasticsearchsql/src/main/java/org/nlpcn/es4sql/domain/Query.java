@@ -1,7 +1,5 @@
 package org.nlpcn.es4sql.domain;
 
-import org.nlpcn.es4sql.domain.hints.Hint;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,10 +10,8 @@ import java.util.List;
 public abstract class Query {
 
 	private Where where = null;
-	private final List<From> from = new ArrayList<>();
-	private int offset;
-	private int rowCount = -1;
-	private final List<Hint> hints = new ArrayList<>();
+	private List<From> from = new ArrayList<>();
+
 
 	public Where getWhere() {
 		return this.where;
@@ -29,25 +25,6 @@ public abstract class Query {
 		return from;
 	}
 
-	public int getOffset() {
-		return offset;
-	}
-
-	public void setOffset(int offset) {
-		this.offset = offset;
-	}
-
-	public int getRowCount() {
-		return rowCount;
-	}
-
-	public void setRowCount(int rowCount) {
-		this.rowCount = rowCount;
-	}
-
-	public List<Hint> getHints() {
-		return hints;
-	}
 
 	/**
 	 * Get the indexes the query refer to.

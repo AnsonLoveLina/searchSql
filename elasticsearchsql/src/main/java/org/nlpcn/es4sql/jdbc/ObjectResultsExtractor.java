@@ -3,10 +3,8 @@ package org.nlpcn.es4sql.jdbc;
 import com.google.common.collect.Maps;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.common.document.DocumentField;
-import org.elasticsearch.jdbc.ElasticSearchArray;
-import org.elasticsearch.jdbc.ElasticSearchResultSet;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHitField;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.aggregations.Aggregation;
 import org.elasticsearch.search.aggregations.Aggregations;
@@ -19,13 +17,8 @@ import org.elasticsearch.search.aggregations.metrics.stats.Stats;
 import org.elasticsearch.search.aggregations.metrics.stats.extended.ExtendedStats;
 import org.elasticsearch.search.aggregations.metrics.tophits.TopHits;
 import org.nlpcn.es4sql.Util;
-import org.nlpcn.es4sql.Action;
-import org.nlpcn.es4sql.query.DefaultQueryAction;
 
-import java.sql.SQLException;
 import java.util.*;
-
-import static org.nlpcn.es4sql.Util.COUNT_NAME;
 
 /**
  * Created by allwefantasy on 8/30/16.
@@ -34,24 +27,20 @@ public class ObjectResultsExtractor {
     private final boolean includeType;
     private final boolean includeScore;
     private final boolean includeId;
-    private final boolean includeScrollId;
     private int currentLineIndex;
-    private Action queryAction;
 
-    public ObjectResultsExtractor(boolean includeScore, boolean includeType, boolean includeId, boolean includeScrollId, Action queryAction) {
+    public ObjectResultsExtractor(boolean includeScore, boolean includeType, boolean includeId) {
         this.includeScore = includeScore;
         this.includeType = includeType;
         this.includeId = includeId;
-        this.includeScrollId = includeScrollId;
         this.currentLineIndex = 0;
-        this.queryAction = queryAction;
     }
 
     public ObjectResult extractResults(Object queryResult, boolean flat) throws ObjectResultsExtractException {
         if (queryResult instanceof SearchHits) {
             SearchHit[] hits = ((SearchHits) queryResult).getHits();
             List<Map<String, Object>> docsAsMap = new ArrayList<>();
-            List<String> headers = createHeadersAndFillDocsMap(flat, hits, null, docsAsMap);
+            List<String> headers = createHeadersAndFillDocsMap(flat, hits, docsAsMap);
             List<List<Object>> lines = createLinesFromDocs(flat, docsAsMap, headers);
             return new ObjectResult(headers, lines);
         }
@@ -59,10 +48,10 @@ public class ObjectResultsExtractor {
             List<String> headers = new ArrayList<>();
             List<List<Object>> lines = new ArrayList<>();
             lines.add(new ArrayList<Object>());
-            handleAggregations((Aggregations) queryResult, headers, lines, 0);
-
+            handleAggregations((Aggregations) queryResult, headers, lines);
+            
             // remove empty line。
-            if (lines.get(0).size() == 0) {
+            if(lines.get(0).size() == 0) {
                 lines.remove(0);
             }
             //todo: need to handle more options for aggregations:
@@ -75,7 +64,7 @@ public class ObjectResultsExtractor {
         if (queryResult instanceof SearchResponse) {
             SearchHit[] hits = ((SearchResponse) queryResult).getHits().getHits();
             List<Map<String, Object>> docsAsMap = new ArrayList<>();
-            List<String> headers = createHeadersAndFillDocsMap(flat, hits, ((SearchResponse) queryResult).getScrollId(), docsAsMap);
+            List<String> headers = createHeadersAndFillDocsMap(flat, hits,  docsAsMap);
             List<List<Object>> lines = createLinesFromDocs(flat, docsAsMap, headers);
             return new ObjectResult(headers, lines);
         }
@@ -88,80 +77,64 @@ public class ObjectResultsExtractor {
         return null;
     }
 
-    private void handleAggregations(Aggregations aggregations, List<String> headers, List<List<Object>> lines, int lineIndex) throws ObjectResultsExtractException {
+    private void handleAggregations(Aggregations aggregations, List<String> headers, List<List<Object>> lines) throws ObjectResultsExtractException {
         if (allNumericAggregations(aggregations)) {
-            lines.get(lineIndex).addAll(fillHeaderAndCreateLineForNumericAggregations(aggregations, headers));
+            lines.get(this.currentLineIndex).addAll(fillHeaderAndCreateLineForNumericAggregations(aggregations, headers));
             return;
         }
         //aggregations with size one only supported when not metrics.
         List<Aggregation> aggregationList = aggregations.asList();
-//        if (aggregationList.size() > 1) {
-//            throw new ObjectResultsExtractException("currently support only one aggregation at same level (Except for numeric metrics)");
-//        }
-        for (Aggregation aggregation : aggregationList) {
+        if (aggregationList.size() > 1) {
+            throw new ObjectResultsExtractException("currently support only one aggregation at same level (Except for numeric metrics)");
+        }
+        Aggregation aggregation = aggregationList.get(0);
+        //we want to skip singleBucketAggregations (nested,reverse_nested,filters)
+        if (aggregation instanceof SingleBucketAggregation) {
+            Aggregations singleBucketAggs = ((SingleBucketAggregation) aggregation).getAggregations();
+            handleAggregations(singleBucketAggs, headers, lines);
+            return;
+        }
+        if (aggregation instanceof NumericMetricsAggregation) {
+            handleNumericMetricAggregation(headers, lines.get(currentLineIndex), aggregation);
+            return;
+        }
+        if (aggregation instanceof GeoBounds) {
+            handleGeoBoundsAggregation(headers, lines, (GeoBounds) aggregation);
+            return;
+        }
+        if (aggregation instanceof TopHits) {
+            //todo: handle this . it returns hits... maby back to normal?
+            //todo: read about this usages
+            // TopHits topHitsAggregation = (TopHits) aggregation;
+        }
+        if (aggregation instanceof MultiBucketsAggregation) {
+            MultiBucketsAggregation bucketsAggregation = (MultiBucketsAggregation) aggregation;
+            String name = bucketsAggregation.getName();
+            //checking because it can comes from sub aggregation again
+            if (!headers.contains(name)) {
+                headers.add(name);
+            }
+            Collection<? extends MultiBucketsAggregation.Bucket> buckets = bucketsAggregation.getBuckets();
 
-//        Aggregation aggregation = aggregationList.get(0);
-            //we want to skip singleBucketAggregations (nested,reverse_nested,filters)
-            if (aggregation instanceof SingleBucketAggregation) {
-                Aggregations singleBucketAggs = ((SingleBucketAggregation) aggregation).getAggregations();
-                handleAggregations(singleBucketAggs, headers, lines, 0);
-                return;
-            }
-            if (aggregation instanceof NumericMetricsAggregation) {
-                handleNumericMetricAggregation(headers, lines.get(0), aggregation);
-                return;
-            }
-            if (aggregation instanceof GeoBounds) {
-                handleGeoBoundsAggregation(headers, lines, (GeoBounds) aggregation);
-                return;
-            }
-            if (aggregation instanceof TopHits) {
-                //todo: handle this . it returns hits... maby back to normal?
-                //todo: read about this usages
-                // TopHits topHitsAggregation = (TopHits) aggregation;
-            }
-            if (aggregation instanceof MultiBucketsAggregation) {
-                MultiBucketsAggregation bucketsAggregation = (MultiBucketsAggregation) aggregation;
-                String name = bucketsAggregation.getName();
-                //checking because it can comes from sub aggregation again
-                if (!headers.contains(name) && lineIndex == 0) {
-                    headers.add(name + Util.BUCKS_NAME);
+            //clone current line.
+            List<Object> currentLine = lines.get(this.currentLineIndex);
+            List<Object> clonedLine = new ArrayList<>(currentLine);
+
+            //call handle_Agg with current_line++
+            boolean firstLine = true;
+            for (MultiBucketsAggregation.Bucket bucket : buckets) {
+                //each bucket need to add new line with current line copied => except for first line
+                String key = bucket.getKeyAsString();
+                if (firstLine) {
+                    firstLine = false;
+                } else {
+                    currentLineIndex++;
+                    currentLine = new ArrayList<Object>(clonedLine);
+                    lines.add(currentLine);
                 }
-                Collection<? extends MultiBucketsAggregation.Bucket> buckets = bucketsAggregation.getBuckets();
+                currentLine.add(key);
+                handleAggregations(bucket.getAggregations(), headers, lines);
 
-                //clone current line.
-                ElasticSearchArray elasticSearchArray = new ElasticSearchArray();
-                List<Object> currentLine = lines.get(lineIndex);
-                currentLine.add(elasticSearchArray);
-                List<String> bucksHeaders = elasticSearchArray.getHeaders();
-                List<List<Object>> bucksLines = elasticSearchArray.getLines();
-                bucksHeaders.add(name + Util.KEY_NAME);
-                bucksHeaders.add(name + Util.COUNT_NAME);
-//                List<Object> clonedLine = new ArrayList<>(currentLine);
-
-                //call handle_Agg with current_line++
-                boolean firstLine = true;
-                int i = 0;
-                for (MultiBucketsAggregation.Bucket bucket : buckets) {
-                    //each bucket need to add new line with current line copied => except for first line
-                    String key = bucket.getKeyAsString();
-                    long docCount = bucket.getDocCount();
-                    List<Object> buckCurrentLine = new ArrayList<>();
-                    bucksLines.add(buckCurrentLine);
-                    buckCurrentLine.add(key);
-                    buckCurrentLine.add(docCount);
-//                    if (firstLine) {
-//                        firstLine = false;
-//                    } else {
-//                        currentLineIndex++;
-//                        currentLine = new ArrayList<Object>(clonedLine);
-//                        lines.add(currentLine);
-//                    }
-//                    currentLine.add(key);
-//                currentLine.add(docCount);
-                    handleAggregations(bucket.getAggregations(), bucksHeaders, bucksLines, i);
-                    i++;
-                }
             }
         }
 
@@ -173,7 +146,7 @@ public class ObjectResultsExtractor {
         headers.add(geoBoundAggName + ".topLeft.lat");
         headers.add(geoBoundAggName + ".bottomRight.lon");
         headers.add(geoBoundAggName + ".bottomRight.lat");
-        List<Object> line = lines.get(0);
+        List<Object> line = lines.get(this.currentLineIndex);
         line.add(String.valueOf(geoBoundsAggregation.topLeft().getLon()));
         line.add(String.valueOf(geoBoundsAggregation.topLeft().getLat()));
         line.add(String.valueOf(geoBoundsAggregation.bottomRight().getLon()));
@@ -297,34 +270,37 @@ public class ObjectResultsExtractor {
         return new ArrayList<>(doc.keySet());
     }
 
-    private List<String> createHeadersAndFillDocsMap(boolean flat, SearchHit[] hits, String scrollId, List<Map<String, Object>> docsAsMap) {
-        Set<String> headers = new LinkedHashSet<>();
-        if (this.queryAction instanceof DefaultQueryAction) {
-            headers.addAll(((DefaultQueryAction) this.queryAction).getFieldNames());
-        }
-        boolean hasScrollId = this.includeScrollId || headers.contains("_scroll_id");
+    private List<String> createHeadersAndFillDocsMap(boolean flat, SearchHit[] hits, List<Map<String, Object>> docsAsMap) {
+        Set<String> csvHeaders = new HashSet<>();
         for (SearchHit hit : hits) {
-            Map<String, Object> doc = hit.getSourceAsMap();
-            Map<String, DocumentField> fields = hit.getFields();
-            for (DocumentField searchHitField : fields.values()) {
-                doc.put(searchHitField.getName(), searchHitField.getValue());
+            Map<String, Object> doc = hit.sourceAsMap();
+            Map<String, SearchHitField> fields = hit.getFields();
+            for (SearchHitField searchHitField : fields.values()) {
+                doc.put(searchHitField.getName(), searchHitField.value());
             }
+            mergeHeaders(csvHeaders, doc, flat);
             if (this.includeScore) {
-                doc.put("_score", hit.getScore());
+                doc.put("_score", hit.score());
             }
             if (this.includeType) {
-                doc.put("_type", hit.getType());
+                doc.put("_type", hit.type());
             }
             if (this.includeId) {
-                doc.put("_id", hit.getId());
+                doc.put("_id", hit.id());
             }
-            if (hasScrollId) {
-                doc.put("_scroll_id", scrollId);
-            }
-            mergeHeaders(headers, doc, flat);
             docsAsMap.add(doc);
         }
-        return new ArrayList<>(headers);
+        ArrayList<String> headersList = new ArrayList<>(csvHeaders);
+        if (this.includeScore) {
+            headersList.add("_score");
+        }
+        if (this.includeType) {
+            headersList.add("_type");
+        }
+        if (this.includeId) {
+            headersList.add("_id");
+        }
+        return headersList;
     }
 
     private Object findFieldValue(String header, Map<String, Object> doc, boolean flat) {

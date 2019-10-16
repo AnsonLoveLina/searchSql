@@ -52,7 +52,7 @@ public class ElasticSearchStatement implements Statement {
     @Override
     public int executeUpdate(String sql) throws SQLException {
         if (connection.getAutoCommit()) {
-            return executeQuery(sql).getRow();
+            return ((ElasticSearchResultSet)executeQuery(sql)).getNrRows();
         }
         Action action = null;
         try {
@@ -63,7 +63,7 @@ public class ElasticSearchStatement implements Statement {
         }
         if (!(action instanceof IndexAction)) {
             this.connection.removeStatements(this);
-            return executeQuery(sql).getRow();
+            return ((ElasticSearchResultSet)executeQuery(sql)).getNrRows();
         }
         IndexAction indexAction = (IndexAction) action;
         DMLActions.add(indexAction);

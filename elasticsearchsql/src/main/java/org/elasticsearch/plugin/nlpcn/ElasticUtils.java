@@ -3,8 +3,8 @@ package org.elasticsearch.plugin.nlpcn;
 import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -43,20 +43,20 @@ public class ElasticUtils {
     public static String hitsAsStringResult(SearchHits results, MetaSearchResult metaResults) throws IOException {
         if(results == null) return null;
         Object[] searchHits;
-        searchHits = new Object[(int) results.getTotalHits()];
+        searchHits = new Object[(int) results.totalHits()];
         int i = 0;
         for(SearchHit hit : results) {
             HashMap<String,Object> value = new HashMap<>();
             value.put("_id",hit.getId());
             value.put("_type", hit.getType());
-            value.put("_score", hit.getScore());
-            value.put("_source", hit.getSourceAsMap());
+            value.put("_score", hit.score());
+            value.put("_source", hit.sourceAsMap());
             searchHits[i] = value;
             i++;
         }
         HashMap<String,Object> hits = new HashMap<>();
-        hits.put("total",results.getTotalHits());
-        hits.put("max_score",results.getMaxScore());
+        hits.put("total",results.totalHits());
+        hits.put("max_score",results.maxScore());
         hits.put("hits",searchHits);
         XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON).prettyPrint();
         builder.startObject();
@@ -67,6 +67,7 @@ public class ElasticUtils {
                 , "failed", metaResults.getFailedShards()));
         builder.field("hits",hits) ;
         builder.endObject();
-        return BytesReference.bytes(builder).utf8ToString();
+
+        return builder.string();
     }
 }

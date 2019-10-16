@@ -1,15 +1,23 @@
 package org.elasticsearch.plugin.nlpcn;
 
+import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.text.Text;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentType;
+
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.internal.InternalSearchHit;
+import org.elasticsearch.search.internal.InternalSearchHits;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.nlpcn.es4sql.domain.Field;
@@ -54,16 +62,16 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
 
     public void run() throws IOException, SqlParseException {
         long timeBefore = System.currentTimeMillis();
-        List<SearchHit> combinedSearchHits =  innerRun();
+        List<InternalSearchHit> combinedSearchHits =  innerRun();
         int resultsSize = combinedSearchHits.size();
-        SearchHit[] hits = combinedSearchHits.toArray(new SearchHit[resultsSize]);
-        this.results = new SearchHits(hits, resultsSize,1.0f);
+        InternalSearchHit[] hits = combinedSearchHits.toArray(new InternalSearchHit[resultsSize]);
+        this.results = new InternalSearchHits(hits, resultsSize,1.0f);
         long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
         this.metaResults.setTookImMilli(joinTimeInMilli);
     }
 
 
-    protected abstract List<SearchHit> innerRun() throws IOException, SqlParseException ;
+    protected abstract List<InternalSearchHit> innerRun() throws IOException, SqlParseException ;
 
     public SearchHits getHits(){
         return results;
@@ -83,11 +91,11 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
         }
     }
 
-    protected void mergeSourceAndAddAliases(Map<String,Object> secondTableHitSource, SearchHit searchHit,String t1Alias,String t2Alias) {
-        Map<String,Object> results = mapWithAliases(searchHit.getSourceAsMap(), t1Alias);
+    protected void mergeSourceAndAddAliases(Map<String,Object> secondTableHitSource, InternalSearchHit searchHit,String t1Alias,String t2Alias) {
+        Map<String,Object> results = mapWithAliases(searchHit.getSource(), t1Alias);
         results.putAll(mapWithAliases(secondTableHitSource, t2Alias));
-        searchHit.getSourceAsMap().clear();
-        searchHit.getSourceAsMap().putAll(results);
+        searchHit.getSource().clear();
+        searchHit.getSource().putAll(results);
     }
 
     protected Map<String,Object> mapWithAliases(Map<String, Object> source, String alias) {
@@ -138,14 +146,14 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     }
 
 
-    protected void addUnmatchedResults(List<SearchHit> combinedResults, Collection<SearchHitsResult> firstTableSearchHits, List<Field> secondTableReturnedFields,int currentNumOfIds, int totalLimit,String t1Alias,String t2Alias) {
+    protected void addUnmatchedResults(List<InternalSearchHit> combinedResults, Collection<SearchHitsResult> firstTableSearchHits, List<Field> secondTableReturnedFields,int currentNumOfIds, int totalLimit,String t1Alias,String t2Alias) {
         boolean limitReached = false;
         for(SearchHitsResult hitsResult : firstTableSearchHits){
             if(!hitsResult.isMatchedWithOtherTable())
-                for (SearchHit hit : hitsResult.getSearchHits()) {
+                for (InternalSearchHit hit : hitsResult.getSearchHits()) {
 
                     //todo: decide which id to put or type. or maby its ok this way. just need to doc.
-                    SearchHit unmachedResult = createUnmachedResult(secondTableReturnedFields, hit.docId(), t1Alias, t2Alias, hit);
+                    InternalSearchHit unmachedResult = createUnmachedResult(secondTableReturnedFields, hit.docId(), t1Alias, t2Alias, hit);
                     combinedResults.add(unmachedResult);
                     currentNumOfIds++;
                     if (currentNumOfIds >= totalLimit) {
@@ -158,15 +166,15 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
         }
     }
 
-    protected SearchHit createUnmachedResult( List<Field> secondTableReturnedFields, int docId, String t1Alias, String t2Alias, SearchHit hit) {
-        String unmatchedId = hit.getId() + "|0";
+    protected InternalSearchHit createUnmachedResult( List<Field> secondTableReturnedFields, int docId, String t1Alias, String t2Alias, SearchHit hit) {
+        String unmatchedId = hit.id() + "|0";
         Text unamatchedType = new Text(hit.getType() + "|null");
 
-        SearchHit searchHit = new SearchHit(docId, unmatchedId, unamatchedType, hit.getFields());
+        InternalSearchHit searchHit = new InternalSearchHit(docId, unmatchedId, unamatchedType, hit.getFields());
 
         searchHit.sourceRef(hit.getSourceRef());
-        searchHit.getSourceAsMap().clear();
-        searchHit.getSourceAsMap().putAll(hit.getSourceAsMap());
+        searchHit.sourceAsMap().clear();
+        searchHit.sourceAsMap().putAll(hit.sourceAsMap());
         Map<String,Object> emptySecondTableHitSource = createNullsSource(secondTableReturnedFields);
 
         mergeSourceAndAddAliases(emptySecondTableHitSource, searchHit,t1Alias,t2Alias);

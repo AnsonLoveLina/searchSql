@@ -1,10 +1,10 @@
 package org.nlpcn.es4sql.domain;
 
-import org.nlpcn.es4sql.Util;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.nlpcn.es4sql.Util;
 
 /**
  * 搜索域
@@ -14,7 +14,7 @@ import java.util.Map;
  */
 public class MethodField extends Field {
 	private List<KVValue> params = null;
-	private String option; //zhongshu-comment 暂时只用于DISTINCT去重查询
+	private String option;
 
 	public MethodField(String name, List<KVValue> params, String option, String alias) {
 		super(name, alias);
@@ -44,13 +44,12 @@ public class MethodField extends Field {
         return paramsAsMap;
     }
 
-    //zhongshu-comment 在这里拼上script(....)
 	@Override
 	public String toString() {
 		if (option != null) {
 			return this.name + "(" + option + " " + Util.joiner(params, ",") + ")";
 		}
-		return this.name + "(" + Util.joiner(params, ",") + ")";//zhongshu-comment 报错
+		return this.name + "(" + Util.joiner(params, ",") + ")";
 	}
 
 	public String getOption() {

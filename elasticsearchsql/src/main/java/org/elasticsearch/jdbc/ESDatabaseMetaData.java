@@ -643,7 +643,7 @@ public class ESDatabaseMetaData implements DatabaseMetaData{
 
 	@Override
 	public boolean supportsTransactions() throws SQLException {
-		return false;
+		return true;
 	}
 
 	@Override

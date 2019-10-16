@@ -1,24 +1,20 @@
 package org.nlpcn.es4sql.parse;
 
-import com.alibaba.druid.sql.ast.*;
+import java.util.*;
+
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.*;
-import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
+import com.alibaba.druid.sql.ast.*;
+import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import org.elasticsearch.search.sort.ScriptSortBuilder;
+
+
 import org.nlpcn.es4sql.Util;
 import org.nlpcn.es4sql.domain.*;
 import org.nlpcn.es4sql.domain.hints.Hint;
 import org.nlpcn.es4sql.domain.hints.HintFactory;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import org.nlpcn.es4sql.query.multi.MultiQuerySelect;
-
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -42,57 +38,46 @@ public class SqlParser {
         return select;
     }
 
-    /**
-     * zhongshu-comment 在访问AST里面的子句、token
-     *
-     * @param query
-     * @return
-     * @throws SqlParseException
-     */
     public Select parseSelect(MySqlSelectQueryBlock query) throws SqlParseException {
 
         Select select = new Select();
-        /*zhongshu-comment SqlParser类没有成员变量，里面全是方法，所以将this传到WhereParser对象时是无状态的，
-                          即SqlParser对象并没有给WhereParser传递任何属性，也不存在WhereParser修改SqlParser的成员变量值这一说
-                         WhereParser只是单纯想调用SqlParser的方法而已
-        */
         WhereParser whereParser = new WhereParser(this, query);
 
-        /*
-        zhongshu-comment 例如sql：select   a,sum(b),case when c='a' then 1 else 2 end as my_c from tbl，
-        那findSelect()就是解析这一部分了：a,sum(b),case when c='a' then 1 else 2 end as my_c
-         */
-        findSelect(query, select, query.getFrom().getAlias()); //zhongshu-comment 看过
 
-        select.getFrom().addAll(findFrom(query.getFrom())); //zhongshu-comment 看过
+        findSelect(query, select, query.getFrom().getAlias());
 
-        select.setWhere(whereParser.findWhere()); //zhongshu-comment 看过
+        select.getFrom().addAll(findFrom(query.getFrom()));
 
-        //zhongshu-comment 这个应该是针对where子查询的，而不是from子查询，貌似又不是解析from子查询的，报错了
-        //zhongshu-comment 也许es本身就不支持子查询，所以es-sql就没实现，那这个fillSubQueries是什么啊？？
-        //todo 看不懂，测试了好几个常见的sql，都没有进去该方法，那就先不理了，看别的
+        select.setWhere(whereParser.findWhere());
+
         select.fillSubQueries();
 
-        //zhongshu-comment 解析sql语句中的注释：select /*! USE_SCROLL(10,120000) */ * FROM spark_es_table
-        //hint单词的意思是提示，即sql中的注释内容
-        // /* 和 */之间是sql的注释内容，这是sql本身的语法，然后sql解析器会将注释块之间的内容“! USE_SCROLL(10,120000) ”抽取出来
-        // ! USE_SCROLL是es-sql自己定义的一套规则，
-        // 在不增加mysql原有语法的情况下，利用注释来灵活地扩展es-sql的功能，这样就能使用druid的mysql语法解析器了，无需自己实现
-        // 注意：!叹号和USE_SCROLL之间要空且只能空一格
         select.getHints().addAll(parseHints(query.getHints()));
 
         findLimit(query.getLimit(), select);
 
-        //zhongshu-comment 和那个_score有关
-        findOrderBy(query, select); //zhongshu-comment 还没看
+        findOrderBy(query, select);
 
-        findGroupBy(query, select); //zhongshu-comment aggregations
+        findGroupBy(query, select);
         return select;
+    }
+
+    public Delete parseDelete(SQLDeleteStatement deleteStatement) throws SqlParseException {
+        Delete delete = new Delete();
+        WhereParser whereParser = new WhereParser(this, deleteStatement);
+
+        delete.getFrom().addAll(findFrom(deleteStatement.getTableSource()));
+
+        delete.setWhere(whereParser.findWhere());
+
+        return delete;
     }
 
     public Insert parseInsert(SQLInsertStatement insertStatement) throws SqlParseException {
         Insert insert = new Insert();
-        String[] indexAndType = insertStatement.getTableName().getSimpleName().split(Util.DOCSPETYPE);
+        String simpleTableName = insertStatement.getTableName().getSimpleName();
+        //replace适用于insert into "tableName"(xx) values('f')的情况，kettle会遇到
+        String[] indexAndType = simpleTableName.replace("\"", "").split(Util.DOCSPETYPE);
         insert.setIndex(indexAndType[0]);
         if (indexAndType.length > 1) {
             insert.setType(indexAndType[1]);
@@ -105,44 +90,22 @@ public class SqlParser {
         for (int i = 0; i < columns.size(); i++) {
             SQLExpr columnName = columns.get(i);
             SQLExpr value = values.get(i);
-            SQLDataType sqlDataType = value.computeDataType();
-            if (sqlDataType == null) {
-                continue;
-            }
-            switch (sqlDataType.getName().toUpperCase()) {
-                case SQLDataType.Constants.NUMBER:
-                    insert.addValues(columnName.toString(), ((SQLNumberExpr) value).getValue());
-                    break;
-                case SQLDataType.Constants.BIGINT:
-                    insert.addValues(columnName.toString(), ((SQLIntegerExpr) value).getValue());
-                    break;
-                case SQLDataType.Constants.BOOLEAN:
-                    insert.addValues(columnName.toString(), ((SQLBooleanExpr) value).getValue());
-                    break;
-                case SQLDataType.Constants.VARCHAR:
-                    insert.addValues(columnName.toString(), ((SQLCharExpr) value).getText());
-                    break;
-                default:
-                    insert.addValues(columnName.toString(), value.toString());
-                    break;
+            insert.addValues(columnName.toString(), value.toString());
+//            SQLDataType sqlDataType = value.computeDataType();
+//            if (sqlDataType == null) {
+//                continue;
+//            }
+            if (value instanceof SQLBooleanExpr) {
+                insert.addValues(columnName.toString(), ((SQLBooleanExpr) value).getValue());
+            } else if (value instanceof SQLNumberExpr) {
+                insert.addValues(columnName.toString(), ((SQLNumberExpr) value).getNumber().doubleValue());
+            } else if (value instanceof SQLIntegerExpr) {
+                insert.addValues(columnName.toString(), ((SQLIntegerExpr) value).getValue());
+            } else {
+                insert.addValues(columnName.toString(), value.toString());
             }
         }
         return insert;
-    }
-
-    public Delete parseDelete(SQLDeleteStatement deleteStatement) throws SqlParseException {
-        Delete delete = new Delete();
-        WhereParser whereParser = new WhereParser(this, deleteStatement);
-
-        delete.getFrom().addAll(findFrom(deleteStatement.getTableSource()));
-
-        delete.setWhere(whereParser.findWhere());
-
-        delete.getHints().addAll(parseHints(((MySqlDeleteStatement) deleteStatement).getHints()));
-
-        findLimit(((MySqlDeleteStatement) deleteStatement).getLimit(), delete);
-
-        return delete;
     }
 
     public MultiQuerySelect parseMultiSelect(SQLUnionQuery query) throws SqlParseException {
@@ -170,20 +133,20 @@ public class SqlParser {
         List<SQLExpr> standardGroupBys = new ArrayList<>();
         for (SQLExpr sqlExpr : items) {
             //todo: mysql expr patch
-            if (sqlExpr instanceof MySqlOrderingExpr) {
-                MySqlOrderingExpr sqlSelectGroupByExpr = (MySqlOrderingExpr) sqlExpr;
+            if (sqlExpr instanceof MySqlSelectGroupByExpr) {
+                MySqlSelectGroupByExpr sqlSelectGroupByExpr = (MySqlSelectGroupByExpr) sqlExpr;
                 sqlExpr = sqlSelectGroupByExpr.getExpr();
             }
+
             if ((sqlExpr instanceof SQLParensIdentifierExpr || !(sqlExpr instanceof SQLIdentifierExpr || sqlExpr instanceof SQLMethodInvokeExpr)) && !standardGroupBys.isEmpty()) {
                 // flush the standard group bys
-                // zhongshu-comment 先将standardGroupBys里面的字段传到select对象的groupBys字段中，然后给standardGroupBys分配一个没有元素的新的list
                 select.addGroupBy(convertExprsToFields(standardGroupBys, sqlTableSource));
                 standardGroupBys = new ArrayList<>();
             }
 
             if (sqlExpr instanceof SQLParensIdentifierExpr) {
                 // single item with parens (should get its own aggregation)
-                select.addGroupBy(FieldMaker.makeField(((SQLParensIdentifierExpr) sqlExpr).getExpr(), null, sqlTableSource.getAlias()));
+                select.addGroupBy(FieldMaker.makeField(sqlExpr, null, sqlTableSource.getAlias()));
             } else if (sqlExpr instanceof SQLListExpr) {
                 // multiple items in their own list
                 SQLListExpr listExpr = (SQLListExpr) sqlExpr;
@@ -202,7 +165,6 @@ public class SqlParser {
         List<Field> fields = new ArrayList<>(exprs.size());
         for (SQLExpr expr : exprs) {
             //here we suppose groupby field will not have alias,so set null in second parameter
-            //zhongshu-comment case when 有别名过不了语法解析，没有别名执行下面语句会报空指针
             fields.add(FieldMaker.makeField(expr, null, sqlTableSource.getAlias()));
         }
         return fields;
@@ -252,56 +214,39 @@ public class SqlParser {
     private void addOrderByToSelect(Select select, List<SQLSelectOrderByItem> items, String alias) throws SqlParseException {
         for (SQLSelectOrderByItem sqlSelectOrderByItem : items) {
             SQLExpr expr = sqlSelectOrderByItem.getExpr();
-            Field f = FieldMaker.makeField(expr, null, null);
-            String orderByName = f.toString();
+            String orderByName = FieldMaker.makeField(expr, null, null).toString();
 
             if (sqlSelectOrderByItem.getType() == null) {
-                sqlSelectOrderByItem.setType(SQLOrderingSpecification.ASC); //zhongshu-comment 默认是升序排序
+                sqlSelectOrderByItem.setType(SQLOrderingSpecification.ASC);
             }
             String type = sqlSelectOrderByItem.getType().toString();
 
             orderByName = orderByName.replace("`", "");
             if (alias != null) orderByName = orderByName.replaceFirst(alias + "\\.", "");
+            select.addOrderBy(orderByName, type);
 
-            ScriptSortBuilder.ScriptSortType scriptSortType = judgeIsStringSort(expr);
-            select.addOrderBy(f.getNestedPath(), orderByName, type, scriptSortType);
         }
     }
 
-    private ScriptSortBuilder.ScriptSortType judgeIsStringSort(SQLExpr expr) {
-        if (expr instanceof SQLCaseExpr) {
-            List<SQLCaseExpr.Item> itemList = ((SQLCaseExpr) expr).getItems();
-            for (SQLCaseExpr.Item item : itemList) {
-                if (item.getValueExpr() instanceof SQLCharExpr) {
-                    return ScriptSortBuilder.ScriptSortType.STRING;
-                }
-            }
-        }
-        return ScriptSortBuilder.ScriptSortType.NUMBER;
-    }
-
-    private void findLimit(SQLLimit limit, Query query) {
+    private void findLimit(MySqlSelectQueryBlock.Limit limit, Select select) {
 
         if (limit == null) {
             return;
         }
 
-        query.setRowCount(Integer.parseInt(limit.getRowCount().toString()));
+        select.setRowCount(Integer.parseInt(limit.getRowCount().toString()));
 
         if (limit.getOffset() != null)
-            query.setOffset(Integer.parseInt(limit.getOffset().toString()));
+            select.setOffset(Integer.parseInt(limit.getOffset().toString()));
     }
 
     /**
      * Parse the from clause
-     * zhongshu-comment 只解析了一般查询和join查询，没有解析子查询
      *
      * @param from the from clause.
      * @return list of From objects represents all the sources.
      */
     private List<From> findFrom(SQLTableSource from) {
-        //zhongshu-comment class1.isAssignableFrom(class2) class2是不是class1的子类或者子接口
-        //改成用instanceof 应该也行吧：from instanceof SQLExprTableSource
         boolean isSqlExprTable = from.getClass().isAssignableFrom(SQLExprTableSource.class);
 
         if (isSqlExprTable) {
@@ -366,7 +311,7 @@ public class SqlParser {
         return aliasToOrderBys;
     }
 
-    private void updateJoinLimit(SQLLimit limit, JoinSelect joinSelect) {
+    private void updateJoinLimit(MySqlSelectQueryBlock.Limit limit, JoinSelect joinSelect) {
         if (limit != null && limit.getRowCount() != null) {
             int sizeLimit = Integer.parseInt(limit.getRowCount().toString());
             joinSelect.setTotalLimit(sizeLimit);

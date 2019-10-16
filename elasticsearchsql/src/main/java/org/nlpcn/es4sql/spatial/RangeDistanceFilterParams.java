@@ -3,7 +3,7 @@ package org.nlpcn.es4sql.spatial;
 /**
  * Created by Eliran on 15/8/2015.
  */
-public class RangeDistanceFilterParams extends DistanceFilterParams {
+public class RangeDistanceFilterParams extends  DistanceFilterParams {
     private String distanceTo;
 
     public RangeDistanceFilterParams(String distanceFrom,String distanceTo, Point from) {

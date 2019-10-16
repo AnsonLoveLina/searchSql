@@ -3,10 +3,14 @@ package org.nlpcn.es4sql.parse;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
+import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.script.ScriptType;
 import org.nlpcn.es4sql.Util;
+import org.nlpcn.es4sql.domain.Field;
+import org.nlpcn.es4sql.domain.KVValue;
 import org.nlpcn.es4sql.exception.SqlParseException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +83,9 @@ public class ScriptFilter {
             case "INDEXED":
             case "STORED":
                 this.scriptType = ScriptType.STORED;
+                break;
+            case "FILE":
+                this.scriptType = ScriptType.FILE;
                 break;
         }
     }

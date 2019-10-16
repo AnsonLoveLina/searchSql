@@ -90,6 +90,9 @@ public class ElasticSearchConnection implements Connection {
 
     @Override
     public void commit() throws SQLException {
+        if (this.autoCommit){
+            return;
+        }
         try {
             for (ElasticSearchStatement st : this.statements) {
                 for (IndexAction dmlAction : st.getDMLActions()) {
@@ -99,6 +102,7 @@ public class ElasticSearchConnection implements Connection {
             }
             cleartatements();
             queryExecutor.commit(bulkRequest);
+            bulkRequest = this.client.prepareBulk();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -126,8 +130,8 @@ public class ElasticSearchConnection implements Connection {
 
     @Override
     public DatabaseMetaData getMetaData() throws SQLException {
-        String host = ((TransportClient) client).transportAddresses().get(0).address().getHostName();
-        int port = ((TransportClient) client).transportAddresses().get(0).address().getPort();
+        String host = ((TransportClient) client).transportAddresses().get(0).getHost();
+        int port = ((TransportClient) client).transportAddresses().get(0).getPort();
         return new ESDatabaseMetaData(host, port, client, this.getClientInfo(), this);
     }
 

@@ -21,8 +21,6 @@ public class NestedType {
     private boolean reverse;
     private boolean simple;
 
-    private String innerHits;
-
     public boolean tryFillFromExpr(SQLExpr expr) throws SqlParseException {
         if (!(expr instanceof SQLMethodInvokeExpr)) return false;
         SQLMethodInvokeExpr method = (SQLMethodInvokeExpr) expr;
@@ -32,18 +30,12 @@ public class NestedType {
         reverse = methodNameLower.equals("reverse_nested");
 
         List<SQLExpr> parameters = method.getParameters();
-        int size = parameters.size();
-        if (size != 3 && size != 2 && size != 1)
-            throw new SqlParseException("on nested object only allowed 3 parameters (path,conditions..,inner_hits) or 2 parameters (field,path)/(path,conditions..) or 1 parameter (field) ");
-
-        // inner_hits
-        if (size == 3) {
-            this.innerHits = Util.extendedToString(parameters.remove(--size));
-        }
+        if (parameters.size() != 2 && parameters.size() != 1)
+            throw new SqlParseException("on nested object only allowed 2 parameters (field,path)/(path,conditions..) or 1 parameter (field) ");
 
         String field = Util.extendedToString(parameters.get(0));
         this.field = field;
-        if (size == 1) {
+        if (parameters.size() == 1) {
             //calc path myself..
             if (!field.contains(".")) {
                 if (!reverse)
@@ -59,7 +51,7 @@ public class NestedType {
 
             }
 
-        } else if (size == 2) {
+        } else if (parameters.size() == 2) {
             SQLExpr secondParameter = parameters.get(1);
             if(secondParameter instanceof SQLTextLiteralExpr || secondParameter instanceof SQLIdentifierExpr || secondParameter instanceof SQLPropertyExpr) {
 
@@ -90,13 +82,5 @@ public class NestedType {
 
     public boolean isReverse() {
         return reverse;
-    }
-
-    public String getInnerHits() {
-        return innerHits;
-    }
-
-    public void setInnerHits(String innerHits) {
-        this.innerHits = innerHits;
     }
 }

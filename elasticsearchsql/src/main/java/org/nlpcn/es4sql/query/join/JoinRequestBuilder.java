@@ -5,14 +5,16 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.search.MultiSearchRequest;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.nlpcn.es4sql.domain.Field;
 import org.nlpcn.es4sql.query.SqlElasticRequestBuilder;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Eliran on 15/9/2015.
@@ -53,7 +55,7 @@ public  class JoinRequestBuilder implements SqlElasticRequestBuilder {
 
             XContentBuilder secondBuilder = XContentFactory.contentBuilder(XContentType.JSON).prettyPrint();
             secondTable.getRequestBuilder().request().source().toXContent(secondBuilder, ToXContent.EMPTY_PARAMS);
-            String explained = String.format(" first query:\n%s\n second query:\n%s", BytesReference.bytes(firstBuilder).utf8ToString(), BytesReference.bytes(secondBuilder).utf8ToString());
+            String explained = String.format(" first query:\n%s\n second query:\n%s", firstBuilder.string(), secondBuilder.string());
 
             return explained;
         } catch (IOException e) {

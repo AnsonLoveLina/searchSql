@@ -7,8 +7,9 @@ import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestStatus;
 import org.nlpcn.es4sql.Action;
+import org.nlpcn.es4sql.query.QueryAction;
 
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by Eliran on 26/12/2015.
@@ -27,8 +28,7 @@ public class CSVResultRestExecutor implements RestExecutor {
         boolean includeScore = getBooleanOrDefault(params,"_score",false);
         boolean includeType = getBooleanOrDefault(params,"_type",false);
         boolean includeId = getBooleanOrDefault(params,"_id",false);
-        boolean includeScrollId = getBooleanOrDefault(params,"_scroll_id",false);
-        CSVResult result  = new CSVResultsExtractor(includeScore,includeType,includeId,includeScrollId).extractResults(queryResult,flat,separator);
+        CSVResult result  = new CSVResultsExtractor(includeScore,includeType,includeId).extractResults(queryResult,flat,separator);
         String newLine = "\n";
         if(params.containsKey("newLine")){
          newLine = params.get("newLine");
@@ -50,8 +50,7 @@ public class CSVResultRestExecutor implements RestExecutor {
         boolean includeScore = getBooleanOrDefault(params,"_score",false);
         boolean includeType = getBooleanOrDefault(params,"_type",false);
         boolean includeId = getBooleanOrDefault(params,"_id",false);
-        boolean includeScrollId = getBooleanOrDefault(params,"_scroll_id",false);
-        CSVResult result  = new CSVResultsExtractor(includeScore,includeType,includeId,includeScrollId).extractResults(queryResult,flat,separator);
+        CSVResult result  = new CSVResultsExtractor(includeScore,includeType,includeId).extractResults(queryResult,flat,separator);
         String newLine = "\n";
         if(params.containsKey("newLine")){
             newLine = params.get("newLine");

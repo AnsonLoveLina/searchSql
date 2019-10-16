@@ -1,7 +1,8 @@
 package org.nlpcn.es4sql;
 
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.SQLObject;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
@@ -11,12 +12,13 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.nlpcn.es4sql.domain.Field;
 import org.nlpcn.es4sql.domain.KVValue;
 import org.nlpcn.es4sql.exception.SqlParseException;
+
+import com.alibaba.druid.sql.ast.*;
 import org.nlpcn.es4sql.query.SqlElasticRequestBuilder;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Util {
 
@@ -30,7 +32,7 @@ public class Util {
 
     public static final String _ID = "_id";
 
-    public static final String DOCSPETYPE = "/";
+    public static final String DOCSPETYPE = "\\.";
 
     // statics
     public static final int ES_MAJOR_VERSION = 2;
@@ -206,8 +208,6 @@ public class Util {
             value = "*";
         } else if (expr instanceof SQLValuableExpr) {
             value = ((SQLValuableExpr) expr).getValue();
-        } else if (expr instanceof SQLBooleanExpr) {
-            value = ((SQLBooleanExpr) expr).getValue();
         } else {
             //throw new SqlParseException("can not support this type " + expr.getClass());
         }
@@ -234,14 +234,8 @@ public class Util {
             return ((SQLNumericLiteralExpr) expr).getNumber();
         } else if (expr instanceof SQLNullExpr) {
             return ((SQLNullExpr) expr).toString().toLowerCase();
-        } else if (expr instanceof  SQLBinaryOpExpr) {
-            //zhongshu-comment 该分支由忠树添加
-            String left = "doc['" + ((SQLBinaryOpExpr) expr).getLeft().toString() + "'].value";
-            String operator = ((SQLBinaryOpExpr) expr).getOperator().getName();
-            String right = "doc['" + ((SQLBinaryOpExpr) expr).getRight().toString() + "'].value";
-            return left + operator + right;
         }
-        throw new SqlParseException("could not parse sqlBinaryOpExpr need to be identifier/valuable got " + expr.getClass().toString() + " with value:" + expr.toString());
+        throw new SqlParseException("could not parse sqlBinaryOpExpr need to be identifier/valuable got" + expr.getClass().toString() + " with value:" + expr.toString());
     }
 
     public static boolean isFromJoinOrUnionTable(SQLExpr expr) {

@@ -1,11 +1,15 @@
 package org.nlpcn.es4sql;
 
-import org.elasticsearch.client.Client;
-import org.nlpcn.es4sql.exception.SqlParseException;
-
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.HashSet;
 import java.util.Set;
+
+import org.elasticsearch.action.ActionRequestBuilder;
+import org.elasticsearch.client.Client;
+import org.nlpcn.es4sql.exception.SqlParseException;
+import org.nlpcn.es4sql.query.ESActionFactory;
+import org.nlpcn.es4sql.query.QueryAction;
+import org.nlpcn.es4sql.query.SqlElasticRequestBuilder;
 
 
 public class SearchDao {

@@ -1,8 +1,15 @@
 package org.nlpcn.es4sql.domain;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHitField;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.aggregations.Aggregation;
 import org.elasticsearch.search.aggregations.Aggregations;
@@ -14,9 +21,6 @@ import org.elasticsearch.search.aggregations.metrics.InternalNumericMetricsAggre
 import org.elasticsearch.search.aggregations.metrics.tophits.InternalTopHits;
 import org.elasticsearch.search.aggregations.metrics.valuecount.InternalValueCount;
 import org.nlpcn.es4sql.exception.SqlParseException;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 public class SearchResult {
 	/**
@@ -33,10 +37,10 @@ public class SearchResult {
 		this.total = hits.getTotalHits();
 		results = new ArrayList<>(hits.getHits().length);
 		for (SearchHit searchHit : hits.getHits()) {
-			if (searchHit.getSourceAsMap() != null) {
-				results.add(searchHit.getSourceAsMap());
+			if (searchHit.getSource() != null) {
+				results.add(searchHit.getSource());
 			} else if (searchHit.getFields() != null) {
-				Map<String, DocumentField> fields = searchHit.getFields();
+				Map<String, SearchHitField> fields = searchHit.getFields();
 				results.add(toFieldsMap(fields));
 			}
 
@@ -77,13 +81,13 @@ public class SearchResult {
 	 * @param fields
 	 * @return
 	 */
-	private Map<String, Object> toFieldsMap(Map<String, DocumentField> fields) {
+	private Map<String, Object> toFieldsMap(Map<String, SearchHitField> fields) {
 		Map<String, Object> result = new HashMap<>();
-		for (Entry<String, DocumentField> entry : fields.entrySet()) {
-			if (entry.getValue().getValues().size() > 1) {
-				result.put(entry.getKey(), entry.getValue().getValues());
+		for (Entry<String, SearchHitField> entry : fields.entrySet()) {
+			if (entry.getValue().values().size() > 1) {
+				result.put(entry.getKey(), entry.getValue().values());
 			} else {
-				result.put(entry.getKey(), entry.getValue().getValue());
+				result.put(entry.getKey(), entry.getValue().value());
 			}
 
 		}

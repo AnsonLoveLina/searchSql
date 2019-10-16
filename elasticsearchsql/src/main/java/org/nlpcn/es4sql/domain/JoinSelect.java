@@ -3,6 +3,7 @@ package org.nlpcn.es4sql.domain;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import org.nlpcn.es4sql.domain.hints.Hint;
 
+
 import java.util.List;
 
 /**
@@ -18,7 +19,7 @@ public class JoinSelect {
     private List<Condition> connectedConditions;
     private int totalLimit;
 
-    public static int DEAFULT_NUM_OF_RESULTS = 200;
+    private final int DEAFULT_NUM_OF_RESULTS = 200;
 
     private SQLJoinTableSource.JoinType joinType;
 

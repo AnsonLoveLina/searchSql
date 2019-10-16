@@ -1,8 +1,12 @@
 package org.elasticsearch.plugin.nlpcn.executors;
 
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.RestChannel;
 import org.nlpcn.es4sql.Action;
+import org.nlpcn.es4sql.query.QueryAction;
+import org.nlpcn.es4sql.query.SqlElasticRequestBuilder;
 
 import java.util.Map;
 
