@@ -1,5 +1,6 @@
 package org.elasticsearch.jdbc;
 
+import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import jodd.util.StringUtil;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -9,6 +10,7 @@ import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.elasticsearch.xpack.client.PreBuiltXPackTransportClient;
 import org.nlpcn.es4sql.SearchDao;
 import org.nlpcn.es4sql.exception.SqlParseException;
@@ -24,9 +26,7 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 
 public class QueryExecutor {
@@ -66,7 +66,12 @@ public class QueryExecutor {
     }
 
     public void commit(BulkRequestBuilder bulkRequestBuilder) throws Exception {
-        bulkRequestBuilder.execute().actionGet();
+        if (bulkRequestBuilder.request().requests().size() > 0) {
+            BulkResponse bulkResponse = bulkRequestBuilder.execute().actionGet();
+            if (bulkResponse.hasFailures()) {
+                throw new SQLException(bulkResponse.buildFailureMessage());
+            }
+        }
     }
 
     private void buildClient() throws SQLException {
@@ -74,14 +79,28 @@ public class QueryExecutor {
             synchronized (this) {
                 if (client == null) {
                     Settings.Builder builder = Settings.builder();
+
+                    final boolean[] clientClass = {false};
+                    Set plugins = new HashSet<>();
                     String user = info.getProperty("user");
                     String password = info.getProperty("password");
                     if (StringUtil.isNotBlank(user) && StringUtil.isNotBlank(password)) {
                         builder.put("xpack.security.user", user + ":" + password);
+                        clientClass[0] = true;
                         info.remove("user");
                         info.remove("password");
                     }
-                    info.forEach((k, v) -> builder.put(k.toString(), v.toString()));
+
+                    info.forEach((k, v) -> {
+                        if (!clientClass[0] && k.toString().contains("xpack")) {
+                            clientClass[0] = true;
+                        }
+                        if (!plugins.contains(SearchGuardSSLPlugin.class) && k.toString().contains("searchguard")) {
+                            plugins.add(SearchGuardSSLPlugin.class);
+                        }
+                        builder.put(k.toString(), v.toString());
+                    });
+//                    info.forEach((k, v) -> builder.put(k.toString(), v.toString()));
 
                     TransportAddress[] addresses = new TransportAddress[uriList.size()];
                     try {
@@ -92,7 +111,12 @@ public class QueryExecutor {
                         throw new SQLException(e);
                     }
 
-                    client = new PreBuiltXPackTransportClient(builder.build()).addTransportAddresses(addresses);
+                    if (clientClass[0]) {
+                        client = new PreBuiltXPackTransportClient(builder.build()).addTransportAddresses(addresses);
+                    } else {
+                        client = new PreBuiltTransportClient(builder.build(), plugins).addTransportAddresses(addresses);
+                    }
+//                    client = new PreBuiltTransportClient(builder.build(), SearchGuardSSLPlugin.class).addTransportAddresses(addresses);
 //                    String token = basicAuthHeaderValue(user, new SecureString(password.toCharArray()));
 //
 //                    client.filterWithHeader(Collections.singletonMap("Authorization", token))

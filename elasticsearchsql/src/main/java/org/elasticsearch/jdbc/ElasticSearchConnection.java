@@ -90,6 +90,9 @@ public class ElasticSearchConnection implements Connection {
 
     @Override
     public void commit() throws SQLException {
+        if (this.autoCommit){
+            return;
+        }
         try {
             for (ElasticSearchStatement st : this.statements) {
                 for (IndexAction dmlAction : st.getDMLActions()) {
@@ -97,8 +100,9 @@ public class ElasticSearchConnection implements Connection {
                 }
                 st.getDMLActions().clear();
             }
-            cleartatements();
+//            cleartatements();
             queryExecutor.commit(bulkRequest);
+            bulkRequest = this.client.prepareBulk();
         } catch (Exception e) {
             e.printStackTrace();
         }

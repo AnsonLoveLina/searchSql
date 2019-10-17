@@ -6,6 +6,7 @@ import org.nlpcn.es4sql.exception.SqlParseException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.HashSet;
 import java.util.Set;
+import com.alibaba.druid.sql.parser.ParserException;
 
 
 public class SearchDao {
@@ -32,16 +33,20 @@ public class SearchDao {
     }
 
     /**
-	 * Prepare action And transform sql
-	 * into ES ActionRequest
-	 * @param sql SQL query to execute.
-	 * @return ES request
-	 * @throws SqlParseException
-	 */
-	public Action explain(String sql) throws SqlParseException, SQLFeatureNotSupportedException {
-		return ESActionFactory.create(client, sql);
-	}
-
+     * Prepare action And transform sql
+     * into ES ActionRequest
+     *
+     * @param sql SQL query to execute.
+     * @return ES request
+     * @throws SqlParseException
+     */
+    public Action explain(String sql) throws SqlParseException, SQLFeatureNotSupportedException {
+        try {
+            return ESActionFactory.create(client, sql);
+        } catch (ParserException | SqlParseException pe) {
+            throw new SqlParseException(sql, pe);
+        }
+    }
 
 
 }

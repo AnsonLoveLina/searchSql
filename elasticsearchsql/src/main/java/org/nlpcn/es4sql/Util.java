@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Util {
 
+    public static final String NULL = "'null'";
+
     public static final String BUCKS_NAME = "BUCKS";
 
     public static final String KEY_NAME = "KEY";
@@ -30,7 +32,7 @@ public class Util {
 
     public static final String _ID = "_id";
 
-    public static final String DOCSPETYPE = "/";
+    public static final String DOCSPETYPE = "\\.";
 
     // statics
     public static final int ES_MAJOR_VERSION = 2;

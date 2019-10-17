@@ -92,7 +92,9 @@ public class SqlParser {
 
     public Insert parseInsert(SQLInsertStatement insertStatement) throws SqlParseException {
         Insert insert = new Insert();
-        String[] indexAndType = insertStatement.getTableName().getSimpleName().split(Util.DOCSPETYPE);
+        String simpleTableName = insertStatement.getTableName().getSimpleName();
+        //replace适用于insert into "tableName"(xx) values('f')的情况，kettle会遇到
+        String[] indexAndType = simpleTableName.replace("\"", "").split(Util.DOCSPETYPE);
         insert.setIndex(indexAndType[0]);
         if (indexAndType.length > 1) {
             insert.setType(indexAndType[1]);
@@ -105,26 +107,26 @@ public class SqlParser {
         for (int i = 0; i < columns.size(); i++) {
             SQLExpr columnName = columns.get(i);
             SQLExpr value = values.get(i);
-            SQLDataType sqlDataType = value.computeDataType();
-            if (sqlDataType == null) {
+            if (value instanceof SQLNullExpr) {
                 continue;
             }
-            switch (sqlDataType.getName().toUpperCase()) {
-                case SQLDataType.Constants.NUMBER:
-                    insert.addValues(columnName.toString(), ((SQLNumberExpr) value).getValue());
-                    break;
-                case SQLDataType.Constants.BIGINT:
-                    insert.addValues(columnName.toString(), ((SQLIntegerExpr) value).getValue());
-                    break;
-                case SQLDataType.Constants.BOOLEAN:
-                    insert.addValues(columnName.toString(), ((SQLBooleanExpr) value).getValue());
-                    break;
-                case SQLDataType.Constants.VARCHAR:
-                    insert.addValues(columnName.toString(), ((SQLCharExpr) value).getText());
-                    break;
-                default:
-                    insert.addValues(columnName.toString(), value.toString());
-                    break;
+//            insert.addValues(columnName.toString(), value.toString());
+//            SQLDataType sqlDataType = value.computeDataType();
+//            if (sqlDataType == null) {
+//                continue;
+//            }
+            if (value instanceof SQLBooleanExpr) {
+                insert.addValues(columnName.toString(), ((SQLBooleanExpr) value).getValue());
+            } else if (value instanceof SQLNumberExpr) {
+                insert.addValues(columnName.toString(), ((SQLNumberExpr) value).getNumber().doubleValue());
+            } else if (value instanceof SQLIntegerExpr) {
+                insert.addValues(columnName.toString(), ((SQLIntegerExpr) value).getValue());
+            } else if (value instanceof SQLCharExpr) {
+                insert.addValues(columnName.toString(), ((SQLCharExpr) value).getText());
+//            } else if (value instanceof SQLNullExpr) {
+//                insert.addValues(columnName.toString(), null);
+            } else {
+                insert.addValues(columnName.toString(), value.toString());
             }
         }
         return insert;

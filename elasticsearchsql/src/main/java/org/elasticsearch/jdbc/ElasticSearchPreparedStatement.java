@@ -38,21 +38,23 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     /**
      * Builds the final sql statement
+     *
      * @return
      * @throws SQLException
      */
-    private String buildSql() throws SQLException{
+    private String buildSql() throws SQLException {
         StringBuilder sb = new StringBuilder();
-        for(int i=0; i<sqlAndParams.length; i++)try {
-            if(sqlAndParams[i] instanceof Date){
-                sb.append("'"+dateFormat.format((Date)sqlAndParams[i])+"' ");
-            }else{
-                sb.append(sqlAndParams[i]+" ");
+        for (int i = 0; i < sqlAndParams.length; i++)
+            try {
+                if (sqlAndParams[i] instanceof Date) {
+                    sb.append("'" + dateFormat.format((Date) sqlAndParams[i]) + "' ");
+                } else {
+                    sb.append(sqlAndParams[i] + " ");
+                }
+            } catch (Exception e) {
+                throw new SQLException("Unable to create SQL statement, [" + i + "] = " + sqlAndParams[i] + " : " + e.getMessage(), e);
             }
-        }catch(Exception e){
-            throw new SQLException("Unable to create SQL statement, ["+i+"] = "+sqlAndParams[i]+" : "+e.getMessage(), e);
-        }
-        return sb.substring(0, sb.length()-2);
+        return sb.substring(0, sb.length() - 2);
     }
 
     @Override
@@ -64,81 +66,94 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
     @Override
     public int executeUpdate() throws SQLException {
         return super.executeUpdate(this.buildSql());
-	    /*		throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());*/
+        /*		throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());*/
     }
 
     @Override
     public void setNull(int parameterIndex, int sqlType) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = null;
+        this.sqlAndParams[(parameterIndex * 2) - 1] = null;
     }
 
     @Override
     public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = Boolean.valueOf(x);
+        this.sqlAndParams[(parameterIndex * 2) - 1] = Boolean.valueOf(x);
 
     }
 
     @Override
     public void setByte(int parameterIndex, byte x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = Byte.valueOf(x);
+        this.sqlAndParams[(parameterIndex * 2) - 1] = Byte.valueOf(x);
 
     }
 
     @Override
     public void setShort(int parameterIndex, short x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = Short.valueOf(x);
+        this.sqlAndParams[(parameterIndex * 2) - 1] = Short.valueOf(x);
     }
 
     @Override
     public void setInt(int parameterIndex, int x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = Integer.valueOf(x);
+        this.sqlAndParams[(parameterIndex * 2) - 1] = Integer.valueOf(x);
     }
 
     @Override
     public void setLong(int parameterIndex, long x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = Long.valueOf(x);
+        this.sqlAndParams[(parameterIndex * 2) - 1] = Long.valueOf(x);
     }
 
     @Override
     public void setFloat(int parameterIndex, float x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = Float.valueOf(x);
+        this.sqlAndParams[(parameterIndex * 2) - 1] = Float.valueOf(x);
     }
 
     @Override
     public void setDouble(int parameterIndex, double x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = Double.valueOf(x);
+        this.sqlAndParams[(parameterIndex * 2) - 1] = Double.valueOf(x);
     }
 
     @Override
     public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = x;
+        this.sqlAndParams[(parameterIndex * 2) - 1] = x;
 
     }
 
     @Override
     public void setString(int parameterIndex, String x) throws SQLException {
         // TODO: escape
-        this.sqlAndParams[(parameterIndex*2) - 1] = "'"+x+"'";
+        if (x == null) {
+            this.sqlAndParams[(parameterIndex * 2) - 1] = null;
+            return;
+        }
+        if (x.contains("\\")) {
+            x = x.replaceAll("\\\\", "");
+        }
+        if (x.contains("'")) {
+            x = x.replaceAll("'", "\\\\'");
+        }
+//        if (x.lastIndexOf("\\") == x.length() - 1) {
+//            x += "\\";
+//        }
+        this.sqlAndParams[(parameterIndex * 2) - 1] = "'" + x + "'";
     }
 
     @Override
     public void setBytes(int parameterIndex, byte[] x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = x;
+        this.sqlAndParams[(parameterIndex * 2) - 1] = x;
     }
 
     @Override
     public void setDate(int parameterIndex, Date x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = x;
+        this.sqlAndParams[(parameterIndex * 2) - 1] = x;
     }
 
     @Override
     public void setTime(int parameterIndex, Time x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = Long.valueOf(x.getTime());
+        this.sqlAndParams[(parameterIndex * 2) - 1] = x == null ? null : Long.valueOf(x.getTime());
     }
 
     @Override
     public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = Long.valueOf(x.getTime());
+        this.sqlAndParams[(parameterIndex * 2) - 1] = x == null ? null : Long.valueOf(x.getTime());
 
     }
 
@@ -159,19 +174,19 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     @Override
     public void clearParameters() throws SQLException {
-        for(int i=1; i<sqlAndParams.length; i+=2) sqlAndParams[i] = null;
+        for (int i = 1; i < sqlAndParams.length; i += 2) sqlAndParams[i] = null;
     }
 
     @Override
     public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
-        if(x instanceof String) this.sqlAndParams[(parameterIndex*2) - 1] = "'"+x+"'";
-        else this.sqlAndParams[(parameterIndex*2) - 1] = x;
+        if (x instanceof String) this.sqlAndParams[(parameterIndex * 2) - 1] = x == null ? null : "'" + x + "'";
+        else this.sqlAndParams[(parameterIndex * 2) - 1] = x;
     }
 
     @Override
     public void setObject(int parameterIndex, Object x) throws SQLException {
-        if(x instanceof String ) this.sqlAndParams[(parameterIndex*2) - 1] = "'"+x+"'";
-        else this.sqlAndParams[(parameterIndex*2) - 1] = x;
+        if (x instanceof String) this.sqlAndParams[(parameterIndex * 2) - 1] = x == null ? null : "'" + x + "'";
+        else this.sqlAndParams[(parameterIndex * 2) - 1] = x;
     }
 
     @Override
@@ -206,7 +221,7 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     @Override
     public void setArray(int parameterIndex, Array x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = x;
+        this.sqlAndParams[(parameterIndex * 2) - 1] = x;
     }
 
     @Override
@@ -231,12 +246,12 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     @Override
     public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = null;
+        this.sqlAndParams[(parameterIndex * 2) - 1] = null;
     }
 
     @Override
     public void setURL(int parameterIndex, URL x) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = x;
+        this.sqlAndParams[(parameterIndex * 2) - 1] = x;
 
     }
 
@@ -252,7 +267,7 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     @Override
     public void setNString(int parameterIndex, String value) throws SQLException {
-        this.sqlAndParams[(parameterIndex*2) - 1] = value;
+        this.sqlAndParams[(parameterIndex * 2) - 1] = value;
     }
 
     @Override

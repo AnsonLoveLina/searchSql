@@ -1,7 +1,6 @@
 package org.nlpcn.es4sql;
 
 import com.alibaba.druid.pool.DruidDataSource;
-import com.alibaba.druid.pool.ElasticSearchDruidDataSourceFactory;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;

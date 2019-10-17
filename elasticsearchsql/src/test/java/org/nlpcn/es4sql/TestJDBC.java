@@ -31,9 +31,11 @@ public class TestJDBC {
 
     private static String insertSql4 = "insert into " + my_index + "(fieldDate,fieldText) values('1990-01-01 12','中华人民共和国')";
 
-    private static String insertSql5 = "insert into " + my_index + "(_id,fieldBoolean,fieldDate,fieldDouble,fieldGeoPoin,fieldInteger,fieldKeyword,fieldLong,fieldText) values('dsfd3334234234',true,'1990-01-01',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
+    static String insertSql5 = "INSERT INTO t_dsmanager_datafff (DATACODE, DATAROLELEVEL, ID, DATAISRELATION) VALUES ( ?,  ?,  ?,  ?)";
 
-    private static String insertSql6 = "insert into " + my_index + "(fieldBoolean,fieldDate,fieldDouble,fieldGeoPoin,fieldInteger,fieldKeyword,fieldLong,fieldText) values(true,'1990-01-01',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
+    private static String insertSql6 = "INSERT INTO t_dsmanager_datafff (DATACODE, DATAROLELEVEL, ID, DATAISRELATION) VALUES ( ?,  ?,  ?,  ?)";
+
+    private static String insertSql7 = "insert into " + my_index + "(fieldBoolean,fieldDate,fieldDouble,fieldGeoPoin,fieldInteger,fieldKeyword,fieldLong,fieldText) values(true,'1990-01-01',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
 
     private static String updateSql1 = "update " + my_index + " set fieldDate='1990-01-01 12',fieldText='中华人民共和国'";
 
@@ -50,7 +52,7 @@ public class TestJDBC {
     private static java.util.Properties info = new java.util.Properties();
 
     static {
-        param1 = "xpack.security.user=" + user + ":" + password + "&cluster.name=VV7im_K";
+        param1 = "xpack.security.user=" + user + ":" + password;
         param = "xpack.security.user=" + user + ":" + password + "&xpack.security.transport.ssl.enabled=true&xpack.security.transport.ssl.verification_mode=certificate&xpack.security.transport.ssl.keystore.path=/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12&xpack.security.transport.ssl.truststore.path=/Users/zy-xx/Documents/学习/elasticSearch/6/elasticsearch/elastic-certificates.p12";
         info.put("xpack.security.user", user + ":" + password);
         info.put("xpack.security.transport.ssl.enabled", "true");
@@ -72,15 +74,33 @@ public class TestJDBC {
     @org.junit.Test
     public void testInsertPrepareStatement() throws Exception {
         Class.forName("org.elasticsearch.jdbc.ElasticSearchDriver");
-        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300/");
-        PreparedStatement ps = connection.prepareStatement(insertSql6);
+        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://127.0.0.1:9300?" + param);
+//        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300","elastic","changeme");
+        connection.setAutoCommit(false);
+        PreparedStatement ps = connection.prepareStatement("INSERT INTO \"t_dsmanager_dataejj.xdh_type1\" (DATACODE, DATAROLELEVEL, ID, DATAISRELATION) VALUES ( ?,  ?,  ?,  ?)");
+        ps.setString(1,"aa\\aab\\");
+        ps.setString(2,"\\1");
+        ps.setString(3,null);
+        ps.setString(4,null);
         int result = ps.executeUpdate();
-        System.out.println("result = " + result);
-        connection.rollback();
-        Statement statement = connection.createStatement();
-        int result1 = statement.executeUpdate(insertSql6);
-        System.out.println("result1 = " + result1);
         connection.commit();
+        ps.setString(1,"涨\\\\是'");
+        ps.setString(2,null);
+        ps.setString(3,"XZXT.LASDS");
+        ps.setString(4,"1");
+        int result1 = ps.executeUpdate();
+        connection.commit();
+//        ps.setString(1,"my_index_dyna222xx");
+//        ps.setString(2,"1");
+//        ps.setString(3,"1");
+//        ps.setString(4,null);
+//        int result1 = ps.executeUpdate();
+        System.out.println("result = " + result);
+//        connection.rollback();
+//        Statement statement = connection.createStatement();
+//        int result1 = statement.executeUpdate(insertSql6);
+//        System.out.println("result1 = " + result1);
+//        connection.commit();
         ps.close();
         connection.close();
     }
@@ -88,7 +108,8 @@ public class TestJDBC {
     @org.junit.Test
     public void testInsertStatement() throws Exception {
         Class.forName("org.elasticsearch.jdbc.ElasticSearchDriver");
-        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300");
+        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://127.0.0.1:9300?" + param);
+//        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300","elastic","changeme");
         connection.setAutoCommit(false);
         Statement statement = connection.createStatement();
         int result = statement.executeUpdate(insertSql6);
@@ -101,24 +122,23 @@ public class TestJDBC {
     @org.junit.Test
     public void testQueryStatement() throws Exception {
         Class.forName("org.elasticsearch.jdbc.ElasticSearchDriver");
-        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://127.0.0.1:9300?" + param1);
+        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://127.0.0.1:9300?" + param);
 //        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300","elastic","changeme");
         Statement statement = connection.createStatement();
-        ResultSet resultSet1 = statement.executeQuery("select * from monitoring-data-2");
+        ResultSet resultSet1 = statement.executeQuery(query1);
         while (resultSet1.next()) {
-            Array array = resultSet1.getArray("key2BUCKS");
-            System.out.println("array = " + array);
+            Boolean fieldBoolean = resultSet1.getBoolean("fieldBoolean");
         }
-        ResultSet resultSet2 = statement.executeQuery(group2);
-        while (resultSet2.next()) {
-            Long array = resultSet2.getLong("stats(key2).count");
-            System.out.println("array = " + array);
-        }
-        ResultSet resultSet3 = statement.executeQuery(group3);
-        while (resultSet3.next()) {
-            Array array = resultSet3.getArray("key2BUCKS");
-            System.out.println("array = " + array);
-        }
+//        ResultSet resultSet2 = statement.executeQuery(group2);
+//        while (resultSet2.next()) {
+//            Long array = resultSet2.getLong("stats(key2).count");
+//            System.out.println("array = " + array);
+//        }
+//        ResultSet resultSet3 = statement.executeQuery(group3);
+//        while (resultSet3.next()) {
+//            Array array = resultSet3.getArray("key2BUCKS");
+//            System.out.println("array = " + array);
+//        }
         statement.close();
         connection.close();
     }
@@ -126,7 +146,7 @@ public class TestJDBC {
     @org.junit.Test
     public void testQueryPrepareStatement() throws Exception {
         Class.forName("org.elasticsearch.jdbc.ElasticSearchDriver");
-        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://localhost:9300/");
+        Connection connection = DriverManager.getConnection("jdbc:elasticsearch://127.0.0.1:9300?" + param);
         PreparedStatement ps = connection.prepareStatement(query2);
         ResultSet resultSet = ps.executeQuery();
         List<String> result = new ArrayList<String>();
