@@ -127,6 +127,12 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
         if (x.contains("'")) {
             x = x.replaceAll("'", "\\\\'");
         }
+        if (x.contains("\\")) {
+            x = x.replaceAll("\\\\", "");
+        }
+//        if (x.lastIndexOf("\\") == x.length() - 1) {
+//            x += "\\";
+//        }
         this.sqlAndParams[(parameterIndex * 2) - 1] = "'" + x + "'";
     }
 

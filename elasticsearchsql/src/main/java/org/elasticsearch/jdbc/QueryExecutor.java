@@ -11,6 +11,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.elasticsearch.xpack.client.PreBuiltXPackTransportClient;
 import org.nlpcn.es4sql.SearchDao;
@@ -27,9 +28,7 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.function.BiConsumer;
 
 
@@ -84,7 +83,8 @@ public class QueryExecutor {
                 if (client == null) {
                     Settings.Builder builder = Settings.builder();
 
-                    final boolean[] clientClass = {false, false};
+                    final boolean[] clientClass = {false};
+                    Set plugins = new HashSet<>();
                     String user = info.getProperty("user");
                     String password = info.getProperty("password");
                     if (StringUtil.isNotBlank(user) && StringUtil.isNotBlank(password)) {
@@ -98,8 +98,8 @@ public class QueryExecutor {
                         if (!clientClass[0] && k.toString().contains("xpack")) {
                             clientClass[0] = true;
                         }
-                        if (!clientClass[1] && k.toString().contains("searchguard")) {
-                            clientClass[1] = true;
+                        if (!plugins.contains(SearchGuardSSLPlugin.class) && k.toString().contains("searchguard")) {
+                            plugins.add(SearchGuardSSLPlugin.class);
                         }
                         builder.put(k.toString(), v.toString());
                     });
@@ -116,10 +116,8 @@ public class QueryExecutor {
 
                     if (clientClass[0]) {
                         client = new PreBuiltXPackTransportClient(builder.build()).addTransportAddresses(addresses);
-                    } else if (clientClass[1]) {
-                        client = new PreBuiltTransportClient(builder.build(), SearchGuardSSLPlugin.class).addTransportAddresses(addresses);
                     } else {
-                        client = new PreBuiltTransportClient(builder.build()).addTransportAddresses(addresses);
+                        client = new PreBuiltTransportClient(builder.build(), plugins).addTransportAddresses(addresses);
                     }
 //                    client = new PreBuiltTransportClient(builder.build(), SearchGuardSSLPlugin.class).addTransportAddresses(addresses);
 //                    String token = basicAuthHeaderValue(user, new SecureString(password.toCharArray()));

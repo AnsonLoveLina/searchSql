@@ -105,7 +105,7 @@ public class SqlParser {
             } else if (value instanceof SQLIntegerExpr) {
                 insert.addValues(columnName.toString(), ((SQLIntegerExpr) value).getValue());
             } else if (value instanceof SQLCharExpr) {
-                insert.addValues(columnName.toString(), ((SQLCharExpr) value).getValue());
+                insert.addValues(columnName.toString(), ((SQLCharExpr) value).getText());
 //            } else if (value instanceof SQLNullExpr) {
 //                insert.addValues(columnName.toString(), null);
             } else {
