@@ -1,5 +1,8 @@
 package org.elasticsearch.jdbc;
 
+import jodd.core.JoddCore;
+import jodd.io.StreamUtil;
+import jodd.util.StringUtil;
 import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
 import org.elasticsearch.plugin.nlpcn.executors.CsvExtractorException;
 import org.nlpcn.es4sql.SearchDao;
@@ -9,10 +12,10 @@ import org.nlpcn.es4sql.jdbc.ObjectResult;
 import org.nlpcn.es4sql.jdbc.ObjectResultsExtractor;
 import org.nlpcn.es4sql.Action;
 
-import java.io.InputStream;
-import java.io.Reader;
+import java.io.*;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -138,7 +141,11 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     @Override
     public void setBytes(int parameterIndex, byte[] x) throws SQLException {
-        this.sqlAndParams[(parameterIndex * 2) - 1] = x;
+        try {
+            this.sqlAndParams[(parameterIndex * 2) - 1] = new String(x, JoddCore.encoding);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -169,7 +176,7 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     @Override
     public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        setCharacterStream(parameterIndex, new InputStreamReader(x), length);
     }
 
     @Override
@@ -201,7 +208,14 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     @Override
     public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        try {
+            byte[] bytes = StreamUtil.readBytes(reader, length);
+            setString(parameterIndex, new String(bytes, JoddCore.encoding));
+        } catch (IOException e) {
+            throw new SQLException(e);
+        } finally {
+            StreamUtil.close(reader);
+        }
     }
 
     @Override
@@ -211,12 +225,12 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     @Override
     public void setBlob(int parameterIndex, Blob x) throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        setBinaryStream(parameterIndex, x.getBinaryStream());
     }
 
     @Override
     public void setClob(int parameterIndex, Clob x) throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        setClob(parameterIndex, x.getCharacterStream());
     }
 
     @Override
@@ -282,12 +296,12 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     @Override
     public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        setCharacterStream(parameterIndex, reader, length);
     }
 
     @Override
     public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        setBinaryStream(parameterIndex, inputStream, length);
     }
 
     @Override
@@ -312,7 +326,7 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     @Override
     public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        setCharacterStream(parameterIndex, new InputStreamReader(x), length);
     }
 
     @Override
@@ -327,12 +341,19 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     @Override
     public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        setCharacterStream(parameterIndex, new InputStreamReader(x));
     }
 
     @Override
     public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        try {
+            byte[] bytes = StreamUtil.readBytes(reader);
+            setString(parameterIndex, new String(bytes, JoddCore.encoding));
+        } catch (IOException e) {
+            throw new SQLException(e);
+        } finally {
+            StreamUtil.close(reader);
+        }
     }
 
     @Override
@@ -342,12 +363,12 @@ public class ElasticSearchPreparedStatement extends ElasticSearchStatement imple
 
     @Override
     public void setClob(int parameterIndex, Reader reader) throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        setCharacterStream(parameterIndex, reader);
     }
 
     @Override
     public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
-        throw new SQLFeatureNotSupportedException(Util.getLoggingInfo());
+        setBinaryStream(parameterIndex, inputStream);
     }
 
     @Override
