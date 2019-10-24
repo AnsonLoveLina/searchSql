@@ -95,11 +95,6 @@
             <groupId>com.ngw</groupId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <artifactId>elasticsearch-sql</artifactId>
-            <groupId>com.ngw</groupId>
-            <version>${project.version}</version>
-        </dependency>
 
         <dependency>
             <groupId>com.oracle</groupId>
