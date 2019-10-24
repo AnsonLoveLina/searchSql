@@ -11,10 +11,6 @@
 
     <artifactId>searchSql-Api</artifactId>
 
-    <properties>
-        <elasticsearch.version>6.8.2</elasticsearch.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>io.swagger</groupId>

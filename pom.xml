@@ -8,7 +8,6 @@
   <artifactId>searchSql</artifactId>
   <version>1.0-SNAPSHOT</version>
     <modules>
-        <module>elasticsearchsql</module>
         <module>searchSqlServer</module>
         <module>searchSqlApi</module>
     </modules>
