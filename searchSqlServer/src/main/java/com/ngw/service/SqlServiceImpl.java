@@ -128,14 +128,14 @@ public class SqlServiceImpl implements SqlService {
         if (sqlParam.getPageSize() == 0) {
             sqlParam.setPageSize(defaultPageSize);
         }
-        String bateDatas = StringUtil.join(sqlParam.getDatas(), "','");
+        String bateDatas = StringUtil.join(sqlParam.getDatas().toArray(), "','");
         //fvh高亮
         List<String> defaultFVHList = jdbcTemplate.queryForList(String.format(fieldFVHSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
         String defaultAggs = null;
         if (sqlParam.isAggs()) {
             //aggs
             List<String> defaultAggsList = jdbcTemplate.queryForList(String.format(fieldAggsSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
-            defaultAggs = StringUtil.join(defaultAggsList, ",");
+            defaultAggs = StringUtil.join(defaultAggsList.toArray(), ",");
         }
         //fields
         List<String> defaultFields = Lists.newArrayList();
@@ -160,7 +160,7 @@ public class SqlServiceImpl implements SqlService {
                 sql.append(" /*! DOCS_WITH_AGGREGATION(").append(sqlParam.getPage() * sqlParam.getPageSize()).append(",").append(sqlParam.getPageSize()).append(") */");
             }
         }
-        sql.append(StringUtil.join(defaultFields, ","))
+        sql.append(StringUtil.join(defaultFields.toArray(), ","))
                 .append(" from ['").append(bateDatas.toLowerCase()).append("']");
         if (StringUtil.isNotBlank(sqlParam.getConditions())) {
             sql.append(" where ").append(sqlParam.getConditions());
@@ -182,11 +182,11 @@ public class SqlServiceImpl implements SqlService {
 
     @Override
     public ResponseModel aggsSearch(SqlSearchParam sqlSearchParam) {
-        String bateDatas = StringUtil.join(sqlSearchParam.getDatas(), "','");
+        String bateDatas = StringUtil.join(sqlSearchParam.getDatas().toArray(), "','");
         String defaultAggs = null;
         //aggs
         List<String> defaultAggsList = jdbcTemplate.queryForList(String.format(fieldAggsSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
-        defaultAggs = StringUtil.join(defaultAggsList, ",");
+        defaultAggs = StringUtil.join(defaultAggsList.toArray(), ",");
         StringBuilder sql = new StringBuilder();
         sql.append("select ");
         sql.append(" * ")
@@ -225,7 +225,7 @@ public class SqlServiceImpl implements SqlService {
         index.append("'").append(SqlUtil.indexsJoin(indexs, "','")).append("'");
         List<String> lists = jdbcTemplate.queryForList("select t.datacode from t_dsmanager_data t where t.datacode in (" + index + ") and t.datarolelevel <= ?", String.class, roleLevel);
         if (lists.size() != index.length()) {
-            return StringUtil.join(lists, ",");
+            return StringUtil.join(lists.toArray(), ",");
         }
         return index.toString();
     }
