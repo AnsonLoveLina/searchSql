@@ -26,7 +26,7 @@ public class TestJDBCTemplate {
 
     private static final String my_index_relation = "my_index_relation";
 
-    private static final String my_index = "my_index";
+    private static final String my_index = "my_index1";
 
     String insertSql1 = "insert into " + my_index + " values(true,'1990-01-01 12:11:11',11.1,'41.12,-71.34',1,'是的',123213,'中华人民共和国')";
 
@@ -51,7 +51,7 @@ public class TestJDBCTemplate {
     @Qualifier("esJdbcTemplate")
     private JdbcTemplate jdbcTemplate;
 
-    private String sql = "select * from my_index_relation limit 0,10";
+    private String sql = "select * from t_dsmanager_dataejj limit 0,10";
 
     @Test
     public void test() throws SQLException {
