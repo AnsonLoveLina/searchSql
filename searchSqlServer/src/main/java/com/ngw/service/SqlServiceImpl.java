@@ -66,6 +66,8 @@ public class SqlServiceImpl implements SqlService {
 
     private String fieldSql = "select esfieldcode from v_t_dsmanager_field_es f where deleteflag='0' and fieldishiden='0' and (exists (select 1 from t_dsmanager_data d where d.id = f.dataid and nvl(d.dataisrelation,'0')='0' and d.datacode in %s) or (relationparentfieldid is not null and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s and nvl(d.dataisrelation,'0')='1'))) order by fieldshowordernum";
 
+    private String indexRoleSql = "select t.datacode from t_dsmanager_data t where t.datacode in %s and t.datarolelevel <= ?";
+
 
     private String logSql = "insert into t_dssearch_searchlog(ID,TOOK,CREATOR,CREATETIME,DELETEFLAG,SQL,EXPLAIN) values (?,?,?,sysdate,'0',?,?)";
 
@@ -131,7 +133,7 @@ public class SqlServiceImpl implements SqlService {
         String bateDatas = StringUtil.join(sqlParam.getDatas().toArray(), "','");
         //fvh高亮
         List<String> defaultFVHList = Lists.newArrayList();
-        if (sqlParam.isHighlight()){
+        if (sqlParam.isHighlight()) {
             defaultFVHList = jdbcTemplate.queryForList(String.format(fieldFVHSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
         }
         String defaultAggs = null;
@@ -220,8 +222,8 @@ public class SqlServiceImpl implements SqlService {
 
     private String getIndexsWithRole(int roleLevel, String[] indexs) {
         StringBuilder index = new StringBuilder();
-        index.append("'").append(SqlUtil.indexsJoin(indexs, "','")).append("'");
-        List<String> lists = jdbcTemplate.queryForList("select t.datacode from t_dsmanager_data t where t.datacode in (" + index + ") and t.datarolelevel <= ?", String.class, roleLevel);
+        index.append("('").append(SqlUtil.indexsJoin(indexs, "','")).append("')");
+        List<String> lists = jdbcTemplate.queryForList(String.format(indexRoleSql, index), String.class, roleLevel);
         if (lists.size() != index.length()) {
             return StringUtil.join(lists.toArray(), ",");
         }
