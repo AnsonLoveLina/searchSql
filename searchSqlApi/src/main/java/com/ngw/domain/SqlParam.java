@@ -15,10 +15,20 @@ public class SqlParam extends SqlSearchParam {
     private int page;
     @ApiModelProperty("一页多少数据")
     private int pageSize;
+    @ApiModelProperty("是否需要高粱")
+    private boolean highlight = false;
     @ApiModelProperty("是否需要聚类")
-    private boolean aggs = true;
+    private boolean aggs = false;
     @ApiModelProperty("是否是详细查询")
     private boolean detail;
+
+    public boolean isHighlight() {
+        return highlight;
+    }
+
+    public void setHighlight(boolean highlight) {
+        this.highlight = highlight;
+    }
 
     public boolean isDetail() {
         return detail;

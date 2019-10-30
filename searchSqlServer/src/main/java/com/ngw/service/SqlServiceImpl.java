@@ -54,7 +54,7 @@ public class SqlServiceImpl implements SqlService {
     @Autowired
     @Qualifier("oracleJdbcTemplate")
     private JdbcTemplate jdbcTemplate;
-    LobHandler lobHandler = new DefaultLobHandler();  // reusable object
+    private LobHandler lobHandler = new DefaultLobHandler();  // reusable object
 
     private int defaultPageSize = 10;
 
@@ -77,7 +77,7 @@ public class SqlServiceImpl implements SqlService {
 
     @Override
     public ResponseModel explain(String sql) {
-        SqlElasticRequestBuilder builder = null;
+        SqlElasticRequestBuilder builder;
         try {
             builder = Util.sqlToEsQuery(sql);
         } catch (Exception e) {
@@ -98,7 +98,7 @@ public class SqlServiceImpl implements SqlService {
 //        log(sql, null, username, took);
 //        return ResponseModel.of(lists);
 
-        SqlElasticRequestBuilder builder = null;
+        SqlElasticRequestBuilder builder;
         try {
             builder = Util.sqlToEsQuery(sql);
         } catch (Exception e) {
@@ -109,7 +109,7 @@ public class SqlServiceImpl implements SqlService {
             SearchRequest searchRequest = ((SearchRequest) builder.request());
             String[] indexs = searchRequest.indices();
             String uri = host + "/" + getIndexsWithRole(roleLevel, indexs) + "/_search?" + searchparam;
-            String response = null;
+            String response;
             response = SqlUtil.post(uri, Constants.JSON_HEADER, request, Constants.CHARSET_UTF8);
             if (response == null) {
                 return ResponseModel.getBizError();
@@ -130,7 +130,10 @@ public class SqlServiceImpl implements SqlService {
         }
         String bateDatas = StringUtil.join(sqlParam.getDatas().toArray(), "','");
         //fvh高亮
-        List<String> defaultFVHList = jdbcTemplate.queryForList(String.format(fieldFVHSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
+        List<String> defaultFVHList = Lists.newArrayList();
+        if (sqlParam.isHighlight()){
+            defaultFVHList = jdbcTemplate.queryForList(String.format(fieldFVHSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
+        }
         String defaultAggs = null;
         if (sqlParam.isAggs()) {
             //aggs
@@ -138,7 +141,7 @@ public class SqlServiceImpl implements SqlService {
             defaultAggs = StringUtil.join(defaultAggsList.toArray(), ",");
         }
         //fields
-        List<String> defaultFields = Lists.newArrayList();
+        List<String> defaultFields;
         if (sqlParam.isDetail()) {
             defaultFields = jdbcTemplate.queryForList(String.format(fieldDetailSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
         } else {
@@ -152,7 +155,7 @@ public class SqlServiceImpl implements SqlService {
         if (sqlParam.getPageSize() != -1) {
             if (defaultFVHList.size() > 0) {
                 for (String fields : defaultFVHList) {
-                    sql.append("/*! HIGHLIGHT(" + fields + ",pre_tags:['<em>'],post_tags:['</em>'])*/");
+                    sql.append("/*! HIGHLIGHT(").append(fields).append(",pre_tags:['<em>'],post_tags:['</em>'])*/");
                 }
             }
             //聚类分页特殊处理
@@ -183,7 +186,7 @@ public class SqlServiceImpl implements SqlService {
     @Override
     public ResponseModel aggsSearch(SqlSearchParam sqlSearchParam) {
         String bateDatas = StringUtil.join(sqlSearchParam.getDatas().toArray(), "','");
-        String defaultAggs = null;
+        String defaultAggs;
         //aggs
         List<String> defaultAggsList = jdbcTemplate.queryForList(String.format(fieldAggsSql, "('" + bateDatas + "')", "('" + bateDatas + "')"), String.class);
         defaultAggs = StringUtil.join(defaultAggsList.toArray(), ",");
@@ -197,27 +200,22 @@ public class SqlServiceImpl implements SqlService {
         if (StringUtil.isNotBlank(defaultAggs)) {
             sql.append(" group by ").append(defaultAggs);
         } else {
-            return ResponseModel.getBizError("针对表" + bateDatas + "，无字段可聚类！");
+            return new ResponseModel(ResponseCode.SUCCESS.getCode(), "针对表" + bateDatas + "，无字段可聚类！");
         }
         return search(new Sql(sql.toString(), sqlSearchParam.getUsername(), sqlSearchParam.getRoleLevel()));
     }
 
     private void log(String sql, String explain, String username, long took) {
         logger.debug("耗时:" + took);
-        executorService.execute(new Runnable() {
-            @Override
-            public void run() {
-                jdbcTemplate.execute(logSql, new AbstractLobCreatingPreparedStatementCallback(lobHandler) {
-                    protected void setValues(PreparedStatement ps, LobCreator lobCreator) throws SQLException {
-                        ps.setString(1, "" + UUID.randomUUID().toString().substring(0, 20));
-                        ps.setString(2, "" + took);
-                        ps.setString(3, username);
-                        lobCreator.setClobAsString(ps, 4, sql);
-                        lobCreator.setClobAsString(ps, 5, explain);
-                    }
-                });
+        executorService.execute(() -> jdbcTemplate.execute(logSql, new AbstractLobCreatingPreparedStatementCallback(lobHandler) {
+            protected void setValues(PreparedStatement ps, LobCreator lobCreator) throws SQLException {
+                ps.setString(1, "" + UUID.randomUUID().toString().substring(0, 20));
+                ps.setString(2, "" + took);
+                ps.setString(3, username);
+                lobCreator.setClobAsString(ps, 4, sql);
+                lobCreator.setClobAsString(ps, 5, explain);
             }
-        });
+        }));
     }
 
     private String getIndexsWithRole(int roleLevel, String[] indexs) {
