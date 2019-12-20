@@ -11,12 +11,22 @@ public class SqlSearchParam {
 
     @ApiModelProperty("数据表用,分隔")
     private List<String> datas;
+    @ApiModelProperty("文本")
+    private String text;
     @ApiModelProperty("查询语句")
     private String conditions;
     @ApiModelProperty("用户名")
     private String username;
     @ApiModelProperty("用户权限级别")
     private int roleLevel;
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
 
     public List<String> getDatas() {
         return datas;

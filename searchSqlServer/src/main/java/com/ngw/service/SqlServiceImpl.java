@@ -51,6 +51,9 @@ public class SqlServiceImpl implements SqlService {
     @Qualifier("esJdbcTemplate")
     private JdbcTemplate esJdbcTemplate;
 
+//    @Value("${defaultsearch.condition}")
+//    private String defaultCondition;
+
     @Autowired
     @Qualifier("oracleJdbcTemplate")
     private JdbcTemplate jdbcTemplate;
@@ -167,7 +170,9 @@ public class SqlServiceImpl implements SqlService {
         }
         sql.append(StringUtil.join(defaultFields.toArray(), ","))
                 .append(" from ['").append(bateDatas.toLowerCase()).append("']");
-        if (StringUtil.isNotBlank(sqlParam.getConditions())) {
+        /*if (StringUtil.isNotBlank(sqlParam.getText())) {
+            sql.append(" where ").append(defaultCondition.replace("{text}", sqlParam.getText()));
+        } else */if (StringUtil.isNotBlank(sqlParam.getConditions())) {
             sql.append(" where ").append(sqlParam.getConditions());
         }
         if (sqlParam.getPageSize() != -1) {
@@ -175,10 +180,12 @@ public class SqlServiceImpl implements SqlService {
                 sql.append(" group by ").append(defaultAggs);
             }
             if (StringUtil.isNotBlank(sqlParam.getOrders())) {
-                sql.append(" order by ").append(sqlParam.getOrders());
+                sql.append(" order by ").append(sqlParam.getOrders()).append(",_score desc");
+            } else {
+                sql.append(" order by _score desc");
             }
         }
-        //聚类分页特殊处理
+
         if (StringUtil.isBlank(defaultAggs) || sqlParam.getPageSize() == -1) {
             sql.append(" limit ").append(sqlParam.getPage() * sqlParam.getPageSize()).append(",").append(sqlParam.getPageSize());
         }
@@ -196,7 +203,9 @@ public class SqlServiceImpl implements SqlService {
         sql.append("select ");
         sql.append(" * ")
                 .append(" from ['").append(bateDatas.toLowerCase()).append("']");
-        if (StringUtil.isNotBlank(sqlSearchParam.getConditions())) {
+        /*if (StringUtil.isNotBlank(sqlSearchParam.getText())) {
+            sql.append(" where ").append(defaultCondition.replace("{text}", sqlSearchParam.getText()));
+        } else*/ if (StringUtil.isNotBlank(sqlSearchParam.getConditions())) {
             sql.append(" where ").append(sqlSearchParam.getConditions());
         }
         if (StringUtil.isNotBlank(defaultAggs)) {

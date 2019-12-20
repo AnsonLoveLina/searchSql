@@ -7,6 +7,9 @@ import java.util.Map;
  * Created by zy-xx on 2019/8/26.
  */
 public class Constants {
+    public static final String BATCH_SEARCH_EVENT = "batchSearch";
+    public static final String BATCH_SEARCH_RESULT_EVENT = "batchSearchResult";
+    public static long EMIT_TIMEOUT = 1000000;
     public static String CHARSET_UTF8 = "UTF-8";
     public static String CHARSET_GB2312 = "GB2312";
     public static String CHARSET_GBK = "GBK";

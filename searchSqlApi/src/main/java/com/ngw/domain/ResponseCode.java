@@ -7,6 +7,7 @@ package com.ngw.domain;
 public enum ResponseCode {
 
     SUCCESS(0,"成功"),
+    ACK_TIMEOUT(408,"ACK超时"),
     SYS_ERROR(500,"系统内部异常"),
     NO_ACCESS(403,"无权限"),
     NO_LOGIN(401,"未登录，或登录无效"),
