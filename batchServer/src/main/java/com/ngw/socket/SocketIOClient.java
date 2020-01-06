@@ -1,9 +1,12 @@
 package com.ngw.socket;
 
-import com.ngw.domain.ResponseModel;
 import com.ngw.socket.ack.AckESTimeOut;
 import com.ngw.util.CustomerType;
 import com.ngw.util.SocketUtil;
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
+import jodd.util.StringUtil;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -11,15 +14,8 @@ import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import io.socket.client.IO;
-import io.socket.client.Socket;
-import io.socket.emitter.Emitter;
-import jodd.util.StringUtil;
 
 public class SocketIOClient {
 

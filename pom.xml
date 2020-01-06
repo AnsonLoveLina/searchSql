@@ -10,6 +10,8 @@
     <modules>
         <module>searchSqlServer</module>
         <module>searchSqlApi</module>
+        <module>batchApi</module>
+        <module>batchServer</module>
     </modules>
     <packaging>pom</packaging>
 

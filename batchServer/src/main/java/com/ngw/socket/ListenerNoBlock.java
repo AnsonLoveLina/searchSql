@@ -1,16 +1,13 @@
 package com.ngw.socket;
 
-import java.lang.reflect.ParameterizedType;
-import java.util.HashMap;
-import java.util.Map;
+import com.ngw.util.FastJsonUtil;
+import io.socket.emitter.Emitter;
+import jodd.util.ReflectUtil;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.ngw.util.FastJsonUtil;
-import io.socket.emitter.Emitter;
-import jodd.util.ReflectUtil;
 
 public abstract class ListenerNoBlock<T> implements Emitter.Listener {
 

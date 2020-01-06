@@ -9,7 +9,7 @@ import static com.ngw.util.Constant.baseFailResponseMap;
 public class SocketUtil {
 
     public static Map<String,String> getBaseFailResponseMap(String message){
-        Map<String,String> map = Maps.newHashMap(baseFailResponseMap);
+        Map<String,String> map = Maps.newHashMap(Constant.baseFailResponseMap);
         map.put("message",message);
         return map;
     }

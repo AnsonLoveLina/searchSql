@@ -6,6 +6,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class Constant {
+    public static long EMIT_TIMEOUT = 1000000;
+    public static final String BATCH_SEARCH_EVENT = "batchSearch";
+    public static final String BATCH_SEARCH_RESULT_EVENT = "batchSearchResult";
     public static String SUCCESS_FLAG = "1";
     public static String ERROR_FLAG = "0";
     public static String TIMEOUT_FLAG = "2";

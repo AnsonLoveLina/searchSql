@@ -1,18 +1,15 @@
 package com.ngw.socket.ack;
 
 
-import java.util.HashMap;
-import java.util.Map;
-
-import com.ngw.common.Constants;
-import com.ngw.domain.ResponseCode;
-import com.ngw.domain.ResponseModel;
-import com.ngw.service.SqlServiceImpl;
+import com.ngw.util.Constant;
 import com.ngw.util.FastJsonUtil;
 import com.ngw.util.SocketUtil;
 import io.socket.client.Ack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.ngw.util.Constant.TIMEOUT_FLAG;
 
@@ -25,7 +22,7 @@ public abstract class AckTimeOut implements Ack {
     private boolean called = false;
 
     public AckTimeOut() {
-        this(Constants.EMIT_TIMEOUT);
+        this(Constant.EMIT_TIMEOUT);
     }
 
     public AckTimeOut(long timeOut) {

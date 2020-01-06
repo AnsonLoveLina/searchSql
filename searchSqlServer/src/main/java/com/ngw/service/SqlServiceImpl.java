@@ -4,11 +4,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.ngw.common.Constants;
 import com.ngw.domain.*;
-import com.ngw.exception.BaseBizException;
+import com.ngw.service.api.RequestTrans;
 import com.ngw.service.api.SqlService;
 import com.ngw.util.SqlUtil;
-import jodd.bean.BeanUtil;
-import jodd.util.CollectionUtil;
 import jodd.util.StringUtil;
 import org.elasticsearch.action.search.SearchRequest;
 import org.nlpcn.es4sql.Util;
@@ -18,10 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementCallback;
 import org.springframework.jdbc.core.support.AbstractLobCreatingPreparedStatementCallback;
 import org.springframework.jdbc.support.lob.DefaultLobHandler;
 import org.springframework.jdbc.support.lob.LobCreator;
@@ -29,14 +24,12 @@ import org.springframework.jdbc.support.lob.LobHandler;
 import org.springframework.stereotype.Service;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.apache.http.entity.ContentType;
 
 /**
  * Created by zy-xx on 2019/8/22.
@@ -60,6 +53,8 @@ public class SqlServiceImpl implements SqlService {
     private LobHandler lobHandler = new DefaultLobHandler();  // reusable object
 
     private int defaultPageSize = 10;
+
+    private String fieldsByDataSql = "select fieldcode from t_dsmanager_field where dataid=?";
 
     private String fieldFVHSql = "select f.esfieldcode from v_t_dsmanager_field_es f where f.deleteflag='0' and f.fieldisfvh='1' and (exists (select 1 from t_dsmanager_data d where d.id = f.dataid and nvl(d.dataisrelation,'0')='0' and d.datacode in %s) or (relationparentfieldid is not null and exists (select 1 from t_dsmanager_data d where d.id = f.dataid and d.datacode in %s and nvl(d.dataisrelation,'0')='1'))) order by f.fieldshowordernum";
 
@@ -92,7 +87,7 @@ public class SqlServiceImpl implements SqlService {
     }
 
     @Override
-    public ResponseModel search(Sql sqlParam) {
+    public ResponseModel search(Sql sqlParam, RequestTrans requestTrans) {
         String sql = sqlParam.getSql();
         String username = sqlParam.getUsername();
         int roleLevel = sqlParam.getRoleLevel();
@@ -110,6 +105,9 @@ public class SqlServiceImpl implements SqlService {
             return ResponseModel.getBizError("sql解析失败!\n" + e.getMessage());
         }
         String request = builder.explain();
+        if (requestTrans != null) {
+            request = requestTrans.trans(request);
+        }
         if (StringUtil.isNotBlank(request)) {
             SearchRequest searchRequest = ((SearchRequest) builder.request());
             String[] indexs = searchRequest.indices();
@@ -129,7 +127,7 @@ public class SqlServiceImpl implements SqlService {
     }
 
     @Override
-    public ResponseModel defaultSearch(SqlParam sqlParam) {
+    public ResponseModel defaultSearch(SqlParam sqlParam, RequestTrans requestTrans) {
         if (sqlParam.getPageSize() == 0) {
             sqlParam.setPageSize(defaultPageSize);
         }
@@ -172,7 +170,8 @@ public class SqlServiceImpl implements SqlService {
                 .append(" from ['").append(bateDatas.toLowerCase()).append("']");
         /*if (StringUtil.isNotBlank(sqlParam.getText())) {
             sql.append(" where ").append(defaultCondition.replace("{text}", sqlParam.getText()));
-        } else */if (StringUtil.isNotBlank(sqlParam.getConditions())) {
+        } else */
+        if (StringUtil.isNotBlank(sqlParam.getConditions())) {
             sql.append(" where ").append(sqlParam.getConditions());
         }
         if (sqlParam.getPageSize() != -1) {
@@ -189,7 +188,7 @@ public class SqlServiceImpl implements SqlService {
         if (StringUtil.isBlank(defaultAggs) || sqlParam.getPageSize() == -1) {
             sql.append(" limit ").append(sqlParam.getPage() * sqlParam.getPageSize()).append(",").append(sqlParam.getPageSize());
         }
-        return search(new Sql(sql.toString(), sqlParam.getUsername(), sqlParam.getRoleLevel()));
+        return search(new Sql(sql.toString(), sqlParam.getUsername(), sqlParam.getRoleLevel()), requestTrans);
     }
 
     @Override
@@ -205,7 +204,8 @@ public class SqlServiceImpl implements SqlService {
                 .append(" from ['").append(bateDatas.toLowerCase()).append("']");
         /*if (StringUtil.isNotBlank(sqlSearchParam.getText())) {
             sql.append(" where ").append(defaultCondition.replace("{text}", sqlSearchParam.getText()));
-        } else*/ if (StringUtil.isNotBlank(sqlSearchParam.getConditions())) {
+        } else*/
+        if (StringUtil.isNotBlank(sqlSearchParam.getConditions())) {
             sql.append(" where ").append(sqlSearchParam.getConditions());
         }
         if (StringUtil.isNotBlank(defaultAggs)) {
@@ -213,7 +213,13 @@ public class SqlServiceImpl implements SqlService {
         } else {
             return new ResponseModel(ResponseCode.SUCCESS.getCode(), "针对表" + bateDatas + "，无字段可聚类！");
         }
-        return search(new Sql(sql.toString(), sqlSearchParam.getUsername(), sqlSearchParam.getRoleLevel()));
+        return search(new Sql(sql.toString(), sqlSearchParam.getUsername(), sqlSearchParam.getRoleLevel()), null);
+    }
+
+    @Override
+    public List<String> getFieldsByData(String data) {
+        List<String> lists = jdbcTemplate.queryForList(fieldsByDataSql, String.class, data);
+        return lists;
     }
 
     private void log(String sql, String explain, String username, long took) {

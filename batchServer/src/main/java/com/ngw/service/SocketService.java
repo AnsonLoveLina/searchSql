@@ -10,21 +10,17 @@ import com.ngw.socket.ListenerNoBlock;
 import com.ngw.socket.SocketIOClient;
 import com.ngw.socket.SocketIOClientUtil;
 import com.ngw.socket.ack.AckESTimeOut;
+import com.ngw.util.Constant;
 import com.ngw.util.CustomerType;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.Map;
 import java.util.Random;
 import java.util.logging.Logger;
 
-import static com.ngw.common.Constants.BATCH_SEARCH_EVENT;
-import static com.ngw.common.Constants.BATCH_SEARCH_RESULT_EVENT;
+import static com.ngw.util.Constant.BATCH_SEARCH_EVENT;
+import static com.ngw.util.Constant.BATCH_SEARCH_RESULT_EVENT;
 import static com.ngw.socket.SocketIOClient.EVENT_REGISTER;
 import static com.ngw.util.Constant.SUCCESS_FLAG;
 
@@ -33,7 +29,7 @@ import static com.ngw.util.Constant.SUCCESS_FLAG;
  */
 public class SocketService {
 
-    private static org.slf4j.Logger logger = LoggerFactory.getLogger(SqlServiceImpl.class);
+    private static org.slf4j.Logger logger = LoggerFactory.getLogger(SocketService.class);
 
     private SocketIOClient socketIOClient;
 
@@ -63,15 +59,15 @@ public class SocketService {
                 }
             }
         });
-        socketIOClient.onListener(BATCH_SEARCH_EVENT, new ListenerNoBlock<SqlParam>() {
+        socketIOClient.onListener(Constant.BATCH_SEARCH_EVENT, new ListenerNoBlock<SqlParam>() {
             @Override
             public void onEventCall(SqlParam sqlParam) {
-                ResponseModel responseModel = sqlService.defaultSearch(sqlParam);
-                SocketIOClientUtil.getInstance().send(BATCH_SEARCH_RESULT_EVENT, SocketIOClientUtil.getUser().getCustomerId(), JSON.toJSONString(responseModel), new ISocketEmitCallBack() {
+                ResponseModel responseModel = sqlService.defaultSearch(sqlParam, null);
+                SocketIOClientUtil.getInstance().send(Constant.BATCH_SEARCH_RESULT_EVENT, sqlParam.getUsername(), JSON.toJSONString(responseModel), new ISocketEmitCallBack() {
                     @Override
                     public void call(Map<String, String> response) {
                         if (!SUCCESS_FLAG.equals(response.get("flag"))) {
-                            logger.error(String.format("%s error!\n%s", BATCH_SEARCH_RESULT_EVENT, response.toString()));
+                            logger.error(String.format("%s error!\n%s", Constant.BATCH_SEARCH_RESULT_EVENT, response.toString()));
                         }
                     }
                 });

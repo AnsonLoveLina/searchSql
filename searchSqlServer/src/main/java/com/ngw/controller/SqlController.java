@@ -23,30 +23,30 @@ public class SqlController {
     private SqlService sqlService;
 
     @ResponseBody
-    @ApiOperation(value="SQL变成ES请求", notes="SQL变成ES请求")
+    @ApiOperation(value = "SQL变成ES请求", notes = "SQL变成ES请求")
     @PostMapping("/explain")
-    public ResponseModel explain(@RequestBody Sql sql){
+    public ResponseModel explain(@RequestBody Sql sql) {
         return sqlService.explain(sql.getSql());
     }
 
     @ResponseBody
-    @ApiOperation(value="SQL查询", notes="SQL查询")
+    @ApiOperation(value = "SQL查询", notes = "SQL查询")
     @PostMapping("/search")
-    public ResponseModel search(@RequestBody Sql sql){
-        return sqlService.search(sql);
+    public ResponseModel search(@RequestBody Sql sql) {
+        return sqlService.search(sql,null);
     }
 
     @ResponseBody
-    @ApiOperation(value="默认查询", notes="默认查询")
+    @ApiOperation(value = "默认查询", notes = "默认查询")
     @PostMapping("/defaultSearch")
-    public ResponseModel defaultSearch(@RequestBody SqlParam sqlParam){
-        return sqlService.defaultSearch(sqlParam);
+    public ResponseModel defaultSearch(@RequestBody SqlParam sqlParam) {
+        return sqlService.defaultSearch(sqlParam,null);
     }
 
     @ResponseBody
-    @ApiOperation(value="默认聚类查询", notes="默认聚类查询")
+    @ApiOperation(value = "默认聚类查询", notes = "默认聚类查询")
     @PostMapping("/aggsSearch")
-    public ResponseModel aggsSearch(@RequestBody SqlSearchParam sqlSearchParam){
+    public ResponseModel aggsSearch(@RequestBody SqlSearchParam sqlSearchParam) {
         return sqlService.aggsSearch(sqlSearchParam);
     }
 }
