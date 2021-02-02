@@ -1,9 +1,6 @@
 package com.ngw.service.api;
 
-import com.ngw.domain.ResponseModel;
-import com.ngw.domain.Sql;
-import com.ngw.domain.SqlParam;
-import com.ngw.domain.SqlSearchParam;
+import com.ngw.domain.*;
 
 import java.util.List;
 import java.util.Map;
@@ -15,6 +12,12 @@ public interface SqlService {
     public ResponseModel explain(String sql);
     public ResponseModel search(Sql sql,RequestTrans requestTrans);
     public ResponseModel defaultSearch(SqlParam sqlParam,RequestTrans requestTrans);
-    public ResponseModel aggsSearch(SqlSearchParam sqlSearchParam);
-    public List<String> getFieldsByData(String data);
+
+    ResponseModel aggsSearch(SqlParam sqlSearchParam);
+
+    int batchTaskFinish(String taskid);
+
+    public List<List<String>> getFieldsByData(String datacode);
+
+    public Map<String,Object> getDataByCode(String datacode);
 }

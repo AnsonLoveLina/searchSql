@@ -59,20 +59,6 @@ public class SocketService {
                 }
             }
         });
-        socketIOClient.onListener(Constant.BATCH_SEARCH_EVENT, new ListenerNoBlock<SqlParam>() {
-            @Override
-            public void onEventCall(SqlParam sqlParam) {
-                ResponseModel responseModel = sqlService.defaultSearch(sqlParam, null);
-                SocketIOClientUtil.getInstance().send(Constant.BATCH_SEARCH_RESULT_EVENT, sqlParam.getUsername(), JSON.toJSONString(responseModel), new ISocketEmitCallBack() {
-                    @Override
-                    public void call(Map<String, String> response) {
-                        if (!SUCCESS_FLAG.equals(response.get("flag"))) {
-                            logger.error(String.format("%s error!\n%s", Constant.BATCH_SEARCH_RESULT_EVENT, response.toString()));
-                        }
-                    }
-                });
-            }
-        });
 //            }
 //        }).start();
 

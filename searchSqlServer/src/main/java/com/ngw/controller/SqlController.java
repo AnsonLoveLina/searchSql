@@ -46,7 +46,7 @@ public class SqlController {
     @ResponseBody
     @ApiOperation(value = "默认聚类查询", notes = "默认聚类查询")
     @PostMapping("/aggsSearch")
-    public ResponseModel aggsSearch(@RequestBody SqlSearchParam sqlSearchParam) {
+    public ResponseModel aggsSearch(@RequestBody SqlParam sqlSearchParam) {
         return sqlService.aggsSearch(sqlSearchParam);
     }
 }

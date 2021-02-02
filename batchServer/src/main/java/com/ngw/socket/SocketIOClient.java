@@ -1,5 +1,7 @@
 package com.ngw.socket;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.ngw.socket.ack.AckESTimeOut;
 import com.ngw.util.CustomerType;
 import com.ngw.util.SocketUtil;
@@ -8,7 +10,6 @@ import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 import jodd.util.StringUtil;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.net.URISyntaxException;
 import java.util.HashSet;
@@ -214,17 +215,25 @@ public class SocketIOClient {
         status = STATUS.CLOSE;
     }
 
-    public void send(String event, String targetCustomer, Object object, ISocketEmitCallBack iSocketEmitCallBack) {
+    public void send(String event, String targetCustomer, CustomerType targetType, Object object, ISocketEmitCallBack iSocketEmitCallBack) {
         if (status.ordinal() > STATUS.REGISTER.ordinal()) {
             iSocketEmitCallBack.call(SocketUtil.getBaseFailResponseMap("status: " + status + ",send error,socketIO not connected!"));
             logger.info("status: " + status + ",send error,socketIO not connected!");
             return;
         }
         JSONObject jsonObject = new JSONObject();
+        JSONObject textObject = new JSONObject();
         try {
+            textObject.put("source", SocketIOClientUtil.getUser().getCustomerId());
+            textObject.put("target", targetCustomer);
+            textObject.put("targetType", targetType.getCustomerType());
+            textObject.put("roomName", targetCustomer);
+            textObject.put("eventName", event);
+            textObject.put("context", JSONObject.toJSONString(object));
+
             jsonObject.put("roomName", targetCustomer);
             jsonObject.put("eventName", event);
-            jsonObject.put("text", object);
+            jsonObject.put("text", textObject);
         } catch (JSONException e) {
             e.printStackTrace();
         }

@@ -12,12 +12,21 @@ public class BatchParam {
     private String taskId;
     @ApiModelProperty("数据表用,分隔")
     private List<String> datas;
+    private List<BatchData> batchDatas;
     @ApiModelProperty("用户名")
     private String username;
     @ApiModelProperty("用户权限级别")
     private int roleLevel;
     @ApiModelProperty("文本")
     private List<String> texts;
+
+    public List<BatchData> getBatchDatas() {
+        return batchDatas;
+    }
+
+    public void setBatchDatas(List<BatchData> batchDatas) {
+        this.batchDatas = batchDatas;
+    }
 
     public String getTaskId() {
         return taskId;

@@ -14,9 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 /**
  * POI工具类
@@ -79,49 +77,6 @@ public class POIUtil {
         return list;
     }
 
-    public class TestWorker implements Runnable {
-        private Sheet sheet;
-        private int finalI;
-        private CountDownLatch countDownLatch;
-
-        public TestWorker(Sheet sheet, int finalI, CountDownLatch countDownLatch) {
-            this.sheet = sheet;
-            this.finalI = finalI;
-            this.countDownLatch = countDownLatch;
-        }
-
-
-        @Override
-        public void run() {
-            try {
-                createExcelFile(sheet, Lists.newArrayList("标题1", "标题2"), Lists.newArrayList(Lists.newArrayList("value1" + finalI, "value2" + finalI), Lists.newArrayList("value1" + finalI, "value2" + finalI)));
-            } finally {
-                countDownLatch.countDown();
-            }
-        }
-    }
-
-    public void test() throws IOException, InterruptedException {
-        CountDownLatch countDownLatch = new CountDownLatch(100);
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        FileOutputStream fileOut = new FileOutputStream("/Users/zy-xx/test/a.xls");
-        Workbook workbook = new XSSFWorkbook();
-        for (int i = 0; i < 100; i++) {
-            int finalI = i;
-            // 2. 创建sheet
-            System.out.println("sheet" + finalI);
-            Sheet sheet = workbook.createSheet("sheet" + finalI);
-            executorService.execute(new TestWorker(sheet, finalI, countDownLatch));
-        }
-        countDownLatch.await();
-        workbook.write(fileOut);
-    }
-
-    public static void main(String[] s) throws IOException, InterruptedException {
-        POIUtil poiUtil = new POIUtil();
-        poiUtil.test();
-    }
-
 
     /**
      * 生成excel文件
@@ -134,17 +89,19 @@ public class POIUtil {
             return;
         }
 
-        // 3. 创建row: 添加属性行
-        Row row0 = sheet.createRow(sheet.getLastRowNum());
-        for (int i = 0; i < attributes.size(); i++) {
-            Cell cell = row0.createCell(i);
-            cell.setCellValue(attributes.get(i).trim());
+        int lastRowNum = sheet.getLastRowNum();
+        if (lastRowNum == 0) {
+            Row row0 = sheet.createRow(0);
+            for (int i = 0; i < attributes.size(); i++) {
+                Cell cell = row0.createCell(i);
+                cell.setCellValue(attributes.get(i).trim());
+            }
         }
         // 4. 插入数据
         if (CollectionUtils.isNotEmpty(data)) {
             for (int i = 0; i < data.size(); i++) {
                 List<String> rowInfo = data.get(i);
-                Row row = sheet.createRow(i + 1);
+                Row row = sheet.createRow(lastRowNum + i + 1);
                 // 添加数据
                 for (int j = 0; j < rowInfo.size(); j++) {
                     row.createCell(j).setCellValue(rowInfo.get(j));

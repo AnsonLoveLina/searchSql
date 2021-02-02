@@ -36,22 +36,9 @@ public class DataSourceConfig {
         return DruidDataSourceBuilder.create().build();
     }
 
-    @Bean(name = "esDataSource")
-    @Qualifier("esDataSource")
-    @ConfigurationProperties(prefix = "spring.datasource.es")
-    public DataSource esDataSource() throws Exception {
-        return new ElasticSearchDruidDataSourceWrapper();
-    }
-
     @Bean(name = "oracleJdbcTemplate")
     public JdbcTemplate oracleJdbcTemplate(
             @Qualifier("oracleDataSource") DataSource dataSource) {
-        return new JdbcTemplate(dataSource);
-    }
-
-    @Bean(name = "esJdbcTemplate")
-    public JdbcTemplate esJdbcTemplate(
-            @Qualifier("esDataSource") DataSource dataSource) {
         return new JdbcTemplate(dataSource);
     }
 

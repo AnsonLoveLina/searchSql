@@ -8,6 +8,9 @@ import java.util.concurrent.TimeUnit;
 public class Constant {
     public static long EMIT_TIMEOUT = 1000000;
     public static final String BATCH_SEARCH_EVENT = "batchSearch";
+    //批量任务完成
+    public static final String BATCH_SEARCH_ENDPOINT_EVENT = "batchSearchEndpointEvent";
+    //批量任务结果
     public static final String BATCH_SEARCH_RESULT_EVENT = "batchSearchResult";
     public static String SUCCESS_FLAG = "1";
     public static String ERROR_FLAG = "0";

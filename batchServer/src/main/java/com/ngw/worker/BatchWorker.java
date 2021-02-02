@@ -6,40 +6,36 @@ import com.google.common.collect.Lists;
 import com.ngw.domain.ResponseCode;
 import com.ngw.domain.ResponseModel;
 import com.ngw.domain.SqlParam;
+import com.ngw.service.BatchServiceImpl;
 import com.ngw.service.api.SqlService;
 import com.ngw.util.POIUtil;
 import jodd.util.StringUtil;
 import org.apache.poi.ss.usermodel.Sheet;
 
 import javax.annotation.Resource;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by zy-xx on 2019/12/25.
  */
-public class BatchWorker implements Runnable {
-    private Sheet sheet;
+public class BatchWorker implements Callable<Boolean> {
+    private SqlParam sqlParam;
 
-    private List<String> titles;
+    private BatchServiceImpl.ScrollCallBack scrollCallBack;
 
-    private List<List<String>> datas;
-
-    private CountDownLatch countDownLatch;
-
-    public BatchWorker(Sheet sheet, List<String> titles, List<List<String>> datas, CountDownLatch countDownLatch) {
-        this.sheet = sheet;
-        this.titles = titles;
-        this.datas = datas;
-        this.countDownLatch = countDownLatch;
+    public BatchWorker(SqlParam sqlParam, BatchServiceImpl.ScrollCallBack scrollCallBack) {
+        this.sqlParam = sqlParam;
+        this.scrollCallBack = scrollCallBack;
     }
 
     @Override
-    public void run() {
-        try {
-            POIUtil.createExcelFile(sheet, titles, datas);
-        } finally {
-            countDownLatch.countDown();
-        }
+    public Boolean call() {
+        return false;
     }
 }
